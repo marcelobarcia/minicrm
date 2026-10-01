@@ -15,7 +15,7 @@
 }
 *{box-sizing:border-box}
 html,body,#root{margin:0;min-height:100%;background:var(--bg);color:var(--amber)}
-body{font-family:Arial,Helvetica,sans-serif;letter-spacing:.01em}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);font-family:Arial,Helvetica,sans-serif;letter-spacing:.01em}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .app{min-height:100vh;max-width:780px;margin:auto;padding:14px 14px 92px;position:relative}
@@ -73,7 +73,19 @@ kbd{border:1px solid var(--line);padding:1px 4px;color:var(--dim)}
 .login-box{width:min(440px,100%);border:1px solid var(--amber);background:#090600;padding:20px;box-shadow:0 0 30px var(--shadow)}
 .statusline{border:1px solid var(--line);padding:8px 10px;margin:10px 0;font-size:12px}
 .userline{margin-top:7px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.nav{padding-bottom:env(safe-area-inset-bottom)}
+.fab{margin-bottom:env(safe-area-inset-bottom)}
 </style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#080600">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MiniCRM">
+<meta name="application-name" content="MiniCRM">
+<meta name="format-detection" content="telephone=no">
+
 </head>
 <body><div id="root"></div>
 <script type="text/babel">
@@ -249,65 +261,59 @@ function App(){
  function completeOpp(id){
    setDb(d=>({...d,oportunidades:d.oportunidades.map(o=>o.id===id?{...o,proxima:"Definir próxima acción",fecha:""}:o)}))
  }
- function saveActivity(ev){
+ async function saveActivity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
-  const contactoId=f.get("contactoId"), oportunidadId=f.get("oportunidadId");
-  const empresaId=contactoId?db.contactos.find(c=>c.id===contactoId)?.empresaId:(oportunidadId?db.oportunidades.find(o=>o.id===oportunidadId)?.empresaId:f.get("activityEmpresaId"));
+  const contactoId=f.get("contactoId")||null,oportunidadId=f.get("oportunidadId")||null;
+  const empresaId=contactoId?db.contactos.find(c=>c.id===contactoId)?.empresaId:(oportunidadId?db.oportunidades.find(o=>o.id===oportunidadId)?.empresaId:(f.get("activityEmpresaId")||null));
   const editing=modal.editActivity?db.actividades.find(a=>a.id===modal.editActivity):null;
-  const act={id:editing?.id||("a"+Date.now()),fecha:f.get("fecha"),tipo:f.get("tipo"),empresaId:empresaId||"",oportunidadId:oportunidadId||"",contactoId:contactoId||"",nota:f.get("nota")};
-  let actividades=editing?db.actividades.map(a=>a.id===editing.id?act:a):[act,...db.actividades];
-  let contactos=db.contactos.map(c=>c.id===contactoId?{...c,ultimo:f.get("fecha"),proximo:(!editing&&f.get("proximo"))?f.get("proximo"):c.proximo}:c);
-  let oportunidades=[...db.oportunidades];
-  const shouldUpdate=!editing || f.get("updateNext")==="yes";
-  if(shouldUpdate && oportunidadId && f.get("accion")){
-    oportunidades=oportunidades.map(o=>o.id===oportunidadId?{...o,proxima:f.get("accion"),fecha:f.get("proximo")}:o);
+  const row={empresa_id:empresaId||null,contacto_id:contactoId,oportunidad_id:oportunidadId,tipo:f.get("tipo"),fecha:f.get("fecha"),nota:f.get("nota")||null};
+  let q=editing?sb.from("actividades").update(row).eq("id",editing.id):sb.from("actividades").insert({...row,user_id:session.user.id});
+  let {error}=await q;if(await cloudError(error))return;
+  if(contactoId){
+    const upd={ultimo_contacto:f.get("fecha")};if(!editing&&f.get("proximo"))upd.proximo_contacto=f.get("proximo");
+    ({error}=await sb.from("contactos").update(upd).eq("id",contactoId));if(await cloudError(error))return;
   }
-  setDb({...db,contactos,oportunidades,actividades}); setModal(false);
+  const shouldUpdate=!editing||f.get("updateNext")==="yes";
+  if(shouldUpdate&&oportunidadId&&f.get("accion")){
+    ({error}=await sb.from("oportunidades").update({proxima_accion:f.get("accion"),fecha_proxima_accion:f.get("proximo")||null}).eq("id",oportunidadId));if(await cloudError(error))return;
+  }
+  setModal(false);await loadCloud();
  }
  function deleteActivity(id){
-  askConfirm("ELIMINAR ACTIVIDAD","Se eliminará el registro histórico. La próxima acción de la oportunidad no será modificada.",()=>{
-    setDb(d=>({...d,actividades:d.actividades.filter(a=>a.id!==id)})); setModal(false); setDialog(null);
+  askConfirm("ELIMINAR ACTIVIDAD","Se eliminará el registro histórico. La próxima acción de la oportunidad no será modificada.",async()=>{
+    const {error}=await sb.from("actividades").delete().eq("id",id);setDialog(null);if(await cloudError(error))return;setModal(false);await loadCloud();
   });
  }
 
- function saveContact(ev){
+ async function saveContact(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
-  let empresaId=f.get("empresaId"), nueva=(f.get("nuevaEmpresa")||"").trim();
-  let empresas=[...db.empresas];
-  if(!empresaId && nueva){
-    empresaId="e"+Date.now();
-    empresas.push({id:empresaId,nombre:nueva,industria:"",estado:"Prospecto",potencial:f.get("potencial")||"Medio"});
+  let empresaId=f.get("empresaId")||null, nueva=(f.get("nuevaEmpresa")||"").trim();
+  if(!empresaId&&nueva){
+    const {data,error}=await sb.from("empresas").insert({user_id:session.user.id,nombre:nueva,estado:"Prospecto",potencial:f.get("potencial")||"Medio"}).select().single();
+    if(await cloudError(error))return;empresaId=data.id;
   }
-  const intereses=(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean);
-  const data={empresaId,nombre:f.get("nombre").trim(),cargo:f.get("cargo").trim(),telefono:f.get("telefono").trim(),
-    email:f.get("email").trim(),linkedin:f.get("linkedin").trim(),estado:f.get("estado"),potencial:f.get("potencial"),
-    intereses,origen:f.get("origen").trim(),nota:f.get("nota").trim(),ultimo:f.get("ultimo")||today,proximo:f.get("proximo")||""};
-  let contactos;
-  if(modal.editContact) contactos=db.contactos.map(c=>c.id===modal.editContact?{...c,...data}:c);
-  else contactos=[...db.contactos,{id:"c"+Date.now(),...data}];
-  setDb({...db,empresas,contactos}); setModal(false);
+  const row={empresa_id:empresaId,nombre:f.get("nombre").trim(),cargo:f.get("cargo").trim()||null,telefono:f.get("telefono").trim()||null,email:f.get("email").trim()||null,
+    estado:f.get("estado"),potencial:f.get("potencial"),intereses:(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean).join("|||"),
+    ultimo_contacto:f.get("ultimo")||today,proximo_contacto:f.get("proximo")||null,
+    observaciones:JSON.stringify({linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
+  const q=modal.editContact?sb.from("contactos").update(row).eq("id",modal.editContact):sb.from("contactos").insert({...row,user_id:session.user.id});
+  const {error}=await q;if(await cloudError(error))return;setModal(false);await loadCloud();
  }
  function deleteContact(id){
-  askConfirm("ELIMINAR CONTACTO","El contacto se eliminará. Sus actividades históricas no serán borradas.",()=>{
-    setDb(d=>({...d,contactos:d.contactos.filter(c=>c.id!==id),oportunidades:d.oportunidades.map(o=>({...o,contactos:(o.contactos||[]).filter(x=>x!==id)}))}));
-    setModal(false); setDialog(null);
+  askConfirm("ELIMINAR CONTACTO","El contacto se eliminará. Las actividades históricas conservarán el registro pero quedarán sin contacto.",async()=>{
+    const {error}=await sb.from("contactos").delete().eq("id",id);setDialog(null);if(await cloudError(error))return;setModal(false);await loadCloud();
   });
  }
  async function saveCompany(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
-  const data={nombre:f.get("nombre").trim(),industria:f.get("industria").trim(),estado:f.get("estado"),potencial:f.get("potencial")};
-  if(cloudReady){
-   const q=modal.editCompany?sb.from("empresas").update(data).eq("id",modal.editCompany):sb.from("empresas").insert({...data,user_id:session.user.id});
-   const {error}=await q;if(await cloudError(error))return;await loadCloud();
-  }else{let empresas=modal.editCompany?db.empresas.map(e=>e.id===modal.editCompany?{...e,...data}:e):[...db.empresas,{id:"e"+Date.now(),...data}];setDb({...db,empresas})}
-  setModal(false);
+  const row={nombre:f.get("nombre").trim(),industria:f.get("industria").trim()||null,estado:f.get("estado"),potencial:f.get("potencial")};
+  const q=modal.editCompany?sb.from("empresas").update(row).eq("id",modal.editCompany):sb.from("empresas").insert({...row,user_id:session.user.id});
+  const {error}=await q;if(await cloudError(error))return;setModal(false);await loadCloud();
  }
  function deleteCompany(id){
-  if(db.contactos.some(c=>c.empresaId===id)||db.oportunidades.some(o=>o.empresaId===id)){
-    showInfo("EMPRESA EN USO","No se puede eliminar porque tiene contactos u oportunidades asociados."); return;
-  }
-  askConfirm("ELIMINAR EMPRESA","La empresa se eliminará definitivamente.",()=>{
-    setDb(d=>({...d,empresas:d.empresas.filter(e=>e.id!==id)})); setModal(false); setDialog(null);
+  if(db.contactos.some(c=>c.empresaId===id)||db.oportunidades.some(o=>o.empresaId===id)){showInfo("EMPRESA EN USO","No se puede eliminar porque tiene contactos u oportunidades asociados.");return}
+  askConfirm("ELIMINAR EMPRESA","La empresa se eliminará definitivamente.",async()=>{
+    const {error}=await sb.from("empresas").delete().eq("id",id);setDialog(null);if(await cloudError(error))return;setModal(false);await loadCloud();
   });
  }
 
@@ -315,8 +321,7 @@ function App(){
  async function saveTask(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const row={titulo:f.get("texto").trim(),fecha:f.get("fecha")||null,prioridad:f.get("prioridad"),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null,completada:false};
-  if(cloudReady){const {error}=await sb.from("tareas").insert({...row,user_id:session.user.id});if(await cloudError(error))return;await loadCloud()}
-  else setDb(d=>({...d,tareas:[...(d.tareas||[]),{id:"t"+Date.now(),texto:row.titulo,fecha:row.fecha||"",prioridad:row.prioridad,empresaId:row.empresa_id||"",contactoId:row.contacto_id||"",oportunidadId:row.oportunidad_id||"",completada:false,creada:new Date().toISOString()}]}));
+  const {error}=await sb.from("tareas").insert({...row,user_id:session.user.id});if(await cloudError(error))return;await loadCloud();
   setModal(false);
  }
  async function toggleTask(id){
@@ -333,8 +338,7 @@ function App(){
  async function saveNote(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const note={texto:f.get("texto").trim(),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null};
-  if(cloudReady){const {error}=await sb.from("notas").insert({...note,user_id:session.user.id});if(await cloudError(error))return;await loadCloud()}
-  else setDb(d=>({...d,notas:[{id:"n"+Date.now(),texto:note.texto,fecha:new Date().toISOString(),empresaId:note.empresa_id||"",contactoId:note.contacto_id||"",oportunidadId:note.oportunidad_id||""},...(d.notas||[])]}));
+  const {error}=await sb.from("notas").insert({...note,user_id:session.user.id});if(await cloudError(error))return;await loadCloud();
   setModal(false);
  }
  function deleteNote(id){
@@ -348,34 +352,28 @@ function App(){
   return <div className="card"><div className="row"><div><div className="title">{t.completada?"[OK] ":""}{t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // PRIORIDAD {t.prioridad}{e&&` // ${e.nombre}`}{c&&` // ${c.nombre}`}{o&&` // ${o.nombre}`}</div></div><span className="tag">{t.completada?"HECHA":"TAREA"}</span></div>
    <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
  }
- function saveOpportunity(ev){
+ async function saveOpportunity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const contactos=[...ev.currentTarget.querySelectorAll('input[name="oppContact"]:checked')].map(x=>x.value);
-  const data={
-   empresaId:f.get("empresaId"),nombre:f.get("nombre").trim(),etapa:f.get("etapa"),
-   valor:Number(f.get("valor")||0),probabilidad:Number(f.get("probabilidad")||0),
-   cierre:f.get("cierre")||"",contactos,proxima:f.get("proxima").trim(),fecha:f.get("fecha")||"",
-   nota:f.get("nota").trim()
-  };
-  let oportunidades;
-  if(modal.editOpp) oportunidades=db.oportunidades.map(o=>o.id===modal.editOpp?{...o,...data}:o);
-  else oportunidades=[...db.oportunidades,{id:"o"+Date.now(),...data}];
-  setDb({...db,oportunidades}); setModal(false);
+  const row={empresa_id:f.get("empresaId")||null,nombre:f.get("nombre").trim(),etapa:f.get("etapa"),monto:Number(f.get("valor")||0),moneda:"USD",
+    proxima_accion:f.get("proxima").trim()||null,fecha_proxima_accion:f.get("fecha")||null,
+    observaciones:JSON.stringify({probabilidad:Number(f.get("probabilidad")||0),cierre:f.get("cierre")||"",contactos,nota:f.get("nota").trim()})};
+  const q=modal.editOpp?sb.from("oportunidades").update(row).eq("id",modal.editOpp):sb.from("oportunidades").insert({...row,user_id:session.user.id});
+  const {error}=await q;if(await cloudError(error))return;setModal(false);await loadCloud();
  }
  function deleteOpportunity(id){
-  askConfirm("ELIMINAR OPORTUNIDAD","La oportunidad se eliminará. Sus actividades históricas no serán borradas.",()=>{
-    setDb(d=>({...d,oportunidades:d.oportunidades.filter(o=>o.id!==id)})); setModal(false); setDialog(null);
+  askConfirm("ELIMINAR OPORTUNIDAD","La oportunidad se eliminará. Las actividades, tareas y notas históricas quedarán sin oportunidad asociada.",async()=>{
+    const {error}=await sb.from("oportunidades").delete().eq("id",id);setDialog(null);if(await cloudError(error))return;setModal(false);await loadCloud();
   });
  }
- function moveStage(id,dir){
-  const stages=["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"];
-  setDb(d=>({...d,oportunidades:d.oportunidades.map(o=>{
-    if(o.id!==id)return o; let i=stages.indexOf(o.etapa); i=Math.max(0,Math.min(stages.length-1,i+dir)); return {...o,etapa:stages[i]};
-  })}));
+ async function moveStage(id,dir){
+  const stages=["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"],o=db.oportunidades.find(x=>x.id===id);if(!o)return;
+  let i=stages.indexOf(o.etapa);i=Math.max(0,Math.min(stages.length-1,i+dir));
+  const {error}=await sb.from("oportunidades").update({etapa:stages[i]}).eq("id",id);if(!(await cloudError(error)))await loadCloud();
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.13</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.15</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -390,7 +388,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.13</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.15 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -659,4 +657,15 @@ function App(){
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(err => {
+      console.warn("MiniCRM Service Worker:", err);
+    });
+  });
+}
+</script>
+
 </body></html>

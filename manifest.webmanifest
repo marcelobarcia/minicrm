@@ -1,0 +1,12 @@
+{
+  "name": "MiniCRM Ataway",
+  "short_name": "MiniCRM",
+  "description": "Personal Sales Terminal",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080600",
+  "theme_color": "#080600",
+  "orientation": "any",
+  "lang": "es-CL"
+}
