@@ -330,9 +330,14 @@ function App(){
   else setDb(d=>({...d,tareas:(d.tareas||[]).map(t=>t.id===id?{...t,completada:!t.completada}:t)}));
  }
  function deleteTask(id){
-  askConfirm("ELIMINAR TAREA","La tarea se eliminará definitivamente.",()=>{
-    if(cloudReady){sb.from("tareas").delete().eq("id",id).then(async({error})=>{setDialog(null);if(!(await cloudError(error)))await loadCloud()})}
-    else {setDb(d=>({...d,tareas:(d.tareas||[]).filter(t=>t.id!==id)}));setDialog(null)};
+  askConfirm("ELIMINAR TAREA","La tarea se eliminará definitivamente de Supabase.",async()=>{
+    const previous=[...(db.tareas||[])];
+    setDialog(null);
+    setDb(d=>({...d,tareas:(d.tareas||[]).filter(t=>t.id!==id)}));
+    const {data,error}=await sb.from("tareas").delete().eq("id",id).select("id");
+    if(error){setDb(d=>({...d,tareas:previous}));await cloudError(error);return}
+    if(!data||data.length===0){setDb(d=>({...d,tareas:previous}));showInfo("NO SE ELIMINÓ","Supabase no confirmó la eliminación de la tarea. Sincroniza y vuelve a intentarlo.");return}
+    await loadCloud();
   });
  }
  async function saveNote(ev){
@@ -342,9 +347,14 @@ function App(){
   setModal(false);
  }
  function deleteNote(id){
-  askConfirm("ELIMINAR NOTA","La nota se eliminará definitivamente.",()=>{
-    if(cloudReady){sb.from("notas").delete().eq("id",id).then(async({error})=>{setDialog(null);if(!(await cloudError(error)))await loadCloud()})}
-    else {setDb(d=>({...d,notas:(d.notas||[]).filter(n=>n.id!==id)}));setDialog(null)};
+  askConfirm("ELIMINAR NOTA","La nota se eliminará definitivamente de Supabase.",async()=>{
+    const previous=[...(db.notas||[])];
+    setDialog(null);
+    setDb(d=>({...d,notas:(d.notas||[]).filter(n=>n.id!==id)}));
+    const {data,error}=await sb.from("notas").delete().eq("id",id).select("id");
+    if(error){setDb(d=>({...d,notas:previous}));await cloudError(error);return}
+    if(!data||data.length===0){setDb(d=>({...d,notas:previous}));showInfo("NO SE ELIMINÓ","Supabase no confirmó la eliminación de la nota. Sincroniza y vuelve a intentarlo.");return}
+    await loadCloud();
   });
  }
  const TaskCard=({t})=>{
@@ -373,7 +383,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.15</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.16</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -388,7 +398,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.15 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.16 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
