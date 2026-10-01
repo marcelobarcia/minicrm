@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>BD-CRM // Terminal</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#080600; --panel:#0d0900; --amber:#ffb000; --bright:#ffd36a;
+  --dim:#9a6900; --line:#6f4b00; --danger:#ff8a00; --shadow:rgba(255,176,0,.22);
+}
+*{box-sizing:border-box}
+html,body,#root{margin:0;min-height:100%;background:var(--bg);color:var(--amber)}
+body{font-family:Arial,Helvetica,sans-serif;letter-spacing:.01em}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;max-width:780px;margin:auto;padding:14px 14px 92px;position:relative}
+.crt:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+ background:repeating-linear-gradient(to bottom,rgba(255,176,0,.025) 0,rgba(255,176,0,.025) 1px,transparent 2px,transparent 4px)}
+.crt:after{content:"";position:fixed;inset:0;pointer-events:none;z-index:49;
+ box-shadow:inset 0 0 80px rgba(0,0,0,.85)}
+header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0 0 14px var(--shadow)}
+.brand{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.brand strong{color:var(--bright);text-shadow:0 0 8px var(--shadow)}
+.small{font-size:12px;color:var(--dim)}
+.cursor{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 14px}
+.stat,.card,.section{border:1px solid var(--line);background:rgba(255,176,0,.025)}
+.stat{padding:9px;text-align:center}
+.stat b{display:block;color:var(--bright);font-size:18px}
+.section{padding:12px;margin:10px 0}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:var(--bright)}
+.card{padding:11px;margin:8px 0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.title{color:var(--bright);font-weight:bold}
+.meta{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.45}
+.tag{display:inline-block;border:1px solid var(--line);padding:2px 6px;margin:5px 5px 0 0;font-size:11px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.btn{background:transparent;color:var(--amber);border:1px solid var(--amber);padding:8px 10px;text-transform:uppercase}
+.btn:hover,.btn.primary{background:var(--amber);color:#120b00}
+.btn.dim{border-color:var(--line);color:var(--dim)}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(780px,100%);display:grid;
+ grid-template-columns:repeat(6,1fr);background:#090600;border-top:1px solid var(--amber);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+.nav button{border:0;border-right:1px solid var(--line);background:transparent;color:var(--dim);padding:12px 3px 10px;font-size:11px}
+.nav button.active{color:var(--bright);background:rgba(255,176,0,.08)}
+.fab{position:fixed;right:max(18px,calc((100vw - 780px)/2 + 18px));bottom:78px;z-index:45;width:54px;height:54px;border-radius:50%;background:var(--amber);color:#120b00;border:0;font-size:30px;font-weight:bold;box-shadow:0 0 22px var(--shadow)}
+.nav b{display:block;font-size:15px;margin-bottom:3px}
+.search{width:100%;background:#050400;border:1px solid var(--line);color:var(--bright);padding:10px;outline:none}
+.search:focus{border-color:var(--amber);box-shadow:0 0 10px var(--shadow)}
+.pipeline{display:grid;gap:10px}
+.stage{border-left:3px solid var(--line);padding-left:9px}
+.stage-head{color:var(--bright);margin:5px 0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.modal{width:min(780px,100%);max-height:92vh;overflow:auto;background:#090600;border:1px solid var(--amber);padding:16px;box-shadow:0 0 30px var(--shadow)}
+label{display:block;color:var(--dim);font-size:12px;margin:11px 0 4px}
+input,select,textarea{width:100%;background:#050400;border:1px solid var(--line);color:var(--bright);padding:10px;outline:none}
+textarea{min-height:88px;resize:vertical}
+.empty{color:var(--dim);padding:14px 0}
+hr{border:0;border-top:1px dashed var(--line);margin:12px 0}
+kbd{border:1px solid var(--line);padding:1px 4px;color:var(--dim)}
+.filepick{display:block;border:1px dashed var(--amber);padding:14px;text-align:center;margin:10px 0;color:var(--bright);cursor:pointer}
+.filepick input{display:none}
+.ok{color:var(--bright)}
+.warn{color:var(--danger)}
+@media(min-width:650px){.pipeline{grid-template-columns:repeat(2,1fr)}}
+.login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px}
+.login-box{width:min(440px,100%);border:1px solid var(--amber);background:#090600;padding:20px;box-shadow:0 0 30px var(--shadow)}
+.statusline{border:1px solid var(--line);padding:8px 10px;margin:10px 0;font-size:12px}
+.userline{margin-top:7px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const {useEffect,useMemo,useState}=React;
+const SUPABASE_URL="https://btfqswpllnyqjdbpkrla.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_PzyXM5_AJOjikpSdllNKrw_OAZtpgWb";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const SEED={
+ empresas:[
+  {id:"e1",nombre:"Agrosuper",industria:"Alimentos",estado:"Prospecto",potencial:"Alto"},
+  {id:"e2",nombre:"Nación Servicios",industria:"Servicios financieros",estado:"Prospecto",potencial:"Alto"},
+  {id:"e3",nombre:"Entel",industria:"Telecomunicaciones",estado:"Prospecto",potencial:"Alto"},
+  {id:"e4",nombre:"Empresa X",industria:"Industria",estado:"Prospecto",potencial:"Medio"}
+ ],
+ contactos:[
+  {id:"c1",empresaId:"e1",nombre:"Diego",cargo:"RRHH",estado:"Activo",potencial:"Alto",intereses:["UKG"],ultimo:"2026-09-28",proximo:"2026-10-02"},
+  {id:"c2",empresaId:"e1",nombre:"Bianca",cargo:"Contacto comercial",estado:"Cercano",potencial:"Alto",intereses:["UKG"],ultimo:"2026-08-25",proximo:"2026-10-06"},
+  {id:"c3",empresaId:"e3",nombre:"Jasna Bonacic",cargo:"HCM",estado:"Activo",potencial:"Alto",intereses:["Oracle HCM"],ultimo:"2026-09-20",proximo:"2026-10-03"},
+  {id:"c4",empresaId:"e4",nombre:"Juan Pérez",cargo:"CFO",estado:"Dormido",potencial:"Alto",intereses:["ERP Cloud"],ultimo:"2026-04-01",proximo:"2026-10-05"}
+ ],
+ oportunidades:[
+  {id:"o1",empresaId:"e1",nombre:"UKG Workforce Management",etapa:"Propuesta",valor:0,probabilidad:60,cierre:"2026-11-30",contactos:["c1","c2"],proxima:"Seguimiento propuesta",fecha:"2026-10-02"},
+  {id:"o2",empresaId:"e2",nombre:"Oracle ERP Cloud",etapa:"Discovery",valor:0,probabilidad:35,cierre:"2027-01-31",contactos:[],proxima:"Validar SKUs y servicios con Oracle",fecha:"2026-10-01"},
+  {id:"o3",empresaId:"e3",nombre:"Soporte Oracle HCM",etapa:"Propuesta",valor:0,probabilidad:55,cierre:"2026-10-31",contactos:["c3"],proxima:"Coordinar siguiente reunión",fecha:"2026-10-03"}
+ ],
+ actividades:[
+  {id:"a1",fecha:"2026-09-28",tipo:"Email",empresaId:"e1",oportunidadId:"o1",contactoId:"c1",nota:"Envío y seguimiento de propuesta."},
+  {id:"a2",fecha:"2026-09-20",tipo:"Reunión",empresaId:"e3",oportunidadId:"o3",contactoId:"c3",nota:"Revisión de alcance de soporte HCM."}
+ ]
+};
+const KEY="ataway_minicrm_v01";
+function localISODate(d=new Date()){
+ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+ return `${y}-${m}-${day}`;
+}
+const today=localISODate();
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(KEY))||SEED;
+  return {...x,tareas:Array.isArray(x.tareas)?x.tareas:[],notas:Array.isArray(x.notas)?x.notas:[]};
+ }catch{return {...SEED,tareas:[],notas:[]}}
+}
+function daysSince(d){return Math.floor((new Date(today)-new Date(d))/86400000)}
+function App(){
+ const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModal]=useState(false); const [q,setQ]=useState("");
+ const [dataMsg,setDataMsg]=useState("");
+ const [dialog,setDialog]=useState(null);
+ const [lastBackup,setLastBackup]=useState(localStorage.getItem(KEY+"_lastBackup")||"");
+ const [session,setSession]=useState(null), [authReady,setAuthReady]=useState(false);
+ const [authMsg,setAuthMsg]=useState(""), [cloudStatus,setCloudStatus]=useState("COMPROBANDO...");
+ const [cloudCounts,setCloudCounts]=useState(null);
+ const [cloudReady,setCloudReady]=useState(false);
+ const [migrating,setMigrating]=useState(false);
+ useEffect(()=>{
+  sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
+  const {data:{subscription}}=sb.auth.onAuthStateChange((_event,s)=>{setSession(s||null);setAuthReady(true);});
+  return ()=>subscription.unsubscribe();
+ },[]);
+ function parseExtra(v){try{return v?JSON.parse(v):{}}catch{return {}}}
+ function toUI(rows){
+  const empresas=rows.empresas.map(x=>({id:x.id,nombre:x.nombre,industria:x.industria||"",estado:x.estado||"Prospecto",potencial:x.potencial||"Medio"}));
+  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||""}});
+  const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||""}});
+  const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",nota:x.nota||""}));
+  const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
+  const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
+  return {empresas,contactos,oportunidades,actividades,tareas,notas};
+ }
+ async function loadCloud(){
+  if(!session)return;
+  setCloudStatus("SINCRONIZANDO...");
+  try{
+   const names=["empresas","contactos","oportunidades","actividades","tareas","notas"], rows={}, counts={};
+   for(const t of names){
+    const {data,error}=await sb.from(t).select("*").order("created_at",{ascending:true});
+    if(error)throw error; rows[t]=data||[];counts[t]=rows[t].length;
+   }
+   setCloudCounts(counts);
+   const total=Object.values(counts).reduce((a,b)=>a+b,0);
+   if(total>0){const fresh=toUI(rows);setDb(fresh);localStorage.setItem(KEY+"_cloud_migrated","1");}
+   setCloudReady(true);
+   setCloudStatus("CONECTADO");
+  }catch(e){setCloudStatus("ERROR: "+e.message);}
+ }
+ useEffect(()=>{if(session)loadCloud();else{setCloudStatus("SIN SESIÓN");setCloudCounts(null);setCloudReady(false)}},[session]);
+ async function login(ev){
+  ev.preventDefault();setAuthMsg("CONECTANDO...");
+  const f=new FormData(ev.currentTarget);
+  const {error}=await sb.auth.signInWithPassword({email:f.get("email"),password:f.get("password")});
+  if(error){setAuthMsg("ERROR: "+error.message);return;} setAuthMsg("");
+ }
+ async function logout(){await sb.auth.signOut();}
+ useEffect(()=>{localStorage.setItem(KEY,JSON.stringify(db));},[db]);
+ async function cloudError(error){if(error){showInfo("ERROR SUPABASE",error.message);return true}return false}
+ async function migrateLocal(){
+  if(!session||migrating)return;
+  const totalCloud=cloudCounts?Object.values(cloudCounts).reduce((a,b)=>a+b,0):0;
+  if(totalCloud>0){showInfo("MIGRACIÓN BLOQUEADA","Supabase ya contiene datos. Para evitar duplicados, la migración local solo puede ejecutarse sobre una cuenta vacía.");return}
+  const local=load();
+  askConfirm("MIGRAR A SUPABASE",`Se copiarán ${local.empresas.length} empresas, ${local.contactos.length} contactos, ${local.oportunidades.length} oportunidades, ${local.actividades.length} actividades, ${(local.tareas||[]).length} tareas y ${(local.notas||[]).length} notas.`,async()=>{
+   setDialog(null);setMigrating(true);setDataMsg("MIGRANDO...");
+   try{
+    const uid=session.user.id, em={}, cm={}, om={};
+    for(const e of local.empresas){const {data,error}=await sb.from("empresas").insert({user_id:uid,nombre:e.nombre,industria:e.industria||null,estado:e.estado||null,potencial:e.potencial||null}).select().single();if(error)throw error;em[e.id]=data.id}
+    for(const c of local.contactos){const {data,error}=await sb.from("contactos").insert({user_id:uid,empresa_id:em[c.empresaId]||null,nombre:c.nombre,cargo:c.cargo||null,email:c.email||null,telefono:c.telefono||null,estado:c.estado||null,potencial:c.potencial||null,ultimo_contacto:c.ultimo||null,proximo_contacto:c.proximo||null,intereses:(c.intereses||[]).join("|||"),observaciones:JSON.stringify({linkedin:c.linkedin||"",origen:c.origen||"",nota:c.nota||""})}).select().single();if(error)throw error;cm[c.id]=data.id}
+    for(const o of local.oportunidades){const {data,error}=await sb.from("oportunidades").insert({user_id:uid,empresa_id:em[o.empresaId]||null,nombre:o.nombre,etapa:o.etapa||"Lead",monto:Number(o.valor||0),moneda:"USD",proxima_accion:o.proxima||null,fecha_proxima_accion:o.fecha||null,observaciones:JSON.stringify({probabilidad:o.probabilidad||0,cierre:o.cierre||"",contactos:(o.contactos||[]).map(x=>cm[x]).filter(Boolean),nota:o.nota||""})}).select().single();if(error)throw error;om[o.id]=data.id}
+    for(const a of local.actividades){const {error}=await sb.from("actividades").insert({user_id:uid,empresa_id:em[a.empresaId]||null,contacto_id:cm[a.contactoId]||null,oportunidad_id:om[a.oportunidadId]||null,tipo:a.tipo,fecha:a.fecha||today,nota:a.nota||null});if(error)throw error}
+    for(const t of (local.tareas||[])){const {error}=await sb.from("tareas").insert({user_id:uid,empresa_id:em[t.empresaId]||null,contacto_id:cm[t.contactoId]||null,oportunidad_id:om[t.oportunidadId]||null,titulo:t.texto,fecha:t.fecha||null,prioridad:t.prioridad||"Normal",completada:!!t.completada});if(error)throw error}
+    for(const n of (local.notas||[])){const {error}=await sb.from("notas").insert({user_id:uid,empresa_id:em[n.empresaId]||null,contacto_id:cm[n.contactoId]||null,oportunidad_id:om[n.oportunidadId]||null,texto:n.texto});if(error)throw error}
+    localStorage.setItem(KEY+"_cloud_migrated","1");setDataMsg("MIGRACIÓN COMPLETADA. SUPABASE ES AHORA LA FUENTE PRINCIPAL.");await loadCloud();
+   }catch(e){setDataMsg("ERROR DE MIGRACIÓN: "+e.message);showInfo("MIGRACIÓN INCOMPLETA","Se produjo un error. No vuelvas a ejecutar la migración hasta revisar Supabase, porque pueden existir registros ya copiados.");}
+   finally{setMigrating(false)}
+  });
+ }
+ const emp=id=>db.empresas.find(x=>x.id===id);
+ const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa));
+ const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
+ const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const reconectar=[...db.contactos].filter(c=>c.ultimo && daysSince(c.ultimo)>=45 && (!c.proximo || c.proximo<=next7)).sort((a,b)=>{
+   const score=x=>(x.potencial==="Alto"?100:x.potencial==="Medio"?50:0)+Math.min(daysSince(x.ultimo),365);
+   return score(b)-score(a);
+ });
+
+ const tareasActivas=(db.tareas||[]).filter(t=>!t.completada);
+ const tareasVencidas=tareasActivas.filter(t=>t.fecha && t.fecha<today).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const tareasHoy=tareasActivas.filter(t=>t.fecha===today);
+ const tareas7=tareasActivas.filter(t=>t.fecha>today && t.fecha<=next7).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const pipelineValue=db.oportunidades.reduce((s,o)=>s+(+o.valor||0),0);
+ const filteredContacts=db.contactos.filter(c=>(c.nombre+" "+(emp(c.empresaId)?.nombre||"")+" "+c.intereses.join(" ")).toLowerCase().includes(q.toLowerCase()));
+
+
+ function askConfirm(title,message,onConfirm){
+  setDialog({type:"confirm",title,message,onConfirm});
+ }
+ function showInfo(title,message){
+  setDialog({type:"info",title,message});
+ }
+ function validateDB(x){
+  if(!x || typeof x!=="object") return false;
+  return ["empresas","contactos","oportunidades","actividades"].every(k=>Array.isArray(x[k]));
+ }
+ function exportJSON(){
+  const payload={...db,_meta:{app:"BD-CRM ATAWAY",version:"0.4",exportedAt:new Date().toISOString()}};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.href=url; a.download=`bd-crm-backup-${stamp}.json`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  const when=new Date().toLocaleString("es-CL");
+  localStorage.setItem(KEY+"_lastBackup",when); setLastBackup(when); setDataMsg("BACKUP EXPORTADO CORRECTAMENTE.");
+ }
+ function importJSON(ev){
+  const file=ev.target.files?.[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+   try{
+    const parsed=JSON.parse(reader.result);
+    if(!validateDB(parsed)) throw new Error("estructura");
+    const clean={empresas:parsed.empresas,contactos:parsed.contactos,oportunidades:parsed.oportunidades,actividades:parsed.actividades,tareas:Array.isArray(parsed.tareas)?parsed.tareas:[],notas:Array.isArray(parsed.notas)?parsed.notas:[]};
+    askConfirm("RESTAURAR BACKUP",`El archivo "${file.name}" reemplazará los datos actuales de este navegador.`,()=>{
+      setDb(clean); setDataMsg("BACKUP RESTAURADO CORRECTAMENTE."); setDialog(null);
+    });
+   }catch(e){setDataMsg("ERROR: EL ARCHIVO NO ES UN BACKUP VÁLIDO DEL CRM.");}
+   ev.target.value="";
+  };
+  reader.readAsText(file);
+ }
+ function resetDemo(){
+  askConfirm("RESTAURAR DEMO","Se reemplazarán todos los datos actuales por los datos de demostración.",()=>{
+    const fresh={...JSON.parse(JSON.stringify(SEED)),tareas:[],notas:[]}; setDb(fresh); setDataMsg("DATOS DE DEMOSTRACIÓN RESTAURADOS."); setDialog(null);
+  });
+ }
+ function completeOpp(id){
+   setDb(d=>({...d,oportunidades:d.oportunidades.map(o=>o.id===id?{...o,proxima:"Definir próxima acción",fecha:""}:o)}))
+ }
+ function saveActivity(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  const contactoId=f.get("contactoId"), oportunidadId=f.get("oportunidadId");
+  const empresaId=contactoId?db.contactos.find(c=>c.id===contactoId)?.empresaId:(oportunidadId?db.oportunidades.find(o=>o.id===oportunidadId)?.empresaId:f.get("activityEmpresaId"));
+  const editing=modal.editActivity?db.actividades.find(a=>a.id===modal.editActivity):null;
+  const act={id:editing?.id||("a"+Date.now()),fecha:f.get("fecha"),tipo:f.get("tipo"),empresaId:empresaId||"",oportunidadId:oportunidadId||"",contactoId:contactoId||"",nota:f.get("nota")};
+  let actividades=editing?db.actividades.map(a=>a.id===editing.id?act:a):[act,...db.actividades];
+  let contactos=db.contactos.map(c=>c.id===contactoId?{...c,ultimo:f.get("fecha"),proximo:(!editing&&f.get("proximo"))?f.get("proximo"):c.proximo}:c);
+  let oportunidades=[...db.oportunidades];
+  const shouldUpdate=!editing || f.get("updateNext")==="yes";
+  if(shouldUpdate && oportunidadId && f.get("accion")){
+    oportunidades=oportunidades.map(o=>o.id===oportunidadId?{...o,proxima:f.get("accion"),fecha:f.get("proximo")}:o);
+  }
+  setDb({...db,contactos,oportunidades,actividades}); setModal(false);
+ }
+ function deleteActivity(id){
+  askConfirm("ELIMINAR ACTIVIDAD","Se eliminará el registro histórico. La próxima acción de la oportunidad no será modificada.",()=>{
+    setDb(d=>({...d,actividades:d.actividades.filter(a=>a.id!==id)})); setModal(false); setDialog(null);
+  });
+ }
+
+ function saveContact(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  let empresaId=f.get("empresaId"), nueva=(f.get("nuevaEmpresa")||"").trim();
+  let empresas=[...db.empresas];
+  if(!empresaId && nueva){
+    empresaId="e"+Date.now();
+    empresas.push({id:empresaId,nombre:nueva,industria:"",estado:"Prospecto",potencial:f.get("potencial")||"Medio"});
+  }
+  const intereses=(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean);
+  const data={empresaId,nombre:f.get("nombre").trim(),cargo:f.get("cargo").trim(),telefono:f.get("telefono").trim(),
+    email:f.get("email").trim(),linkedin:f.get("linkedin").trim(),estado:f.get("estado"),potencial:f.get("potencial"),
+    intereses,origen:f.get("origen").trim(),nota:f.get("nota").trim(),ultimo:f.get("ultimo")||today,proximo:f.get("proximo")||""};
+  let contactos;
+  if(modal.editContact) contactos=db.contactos.map(c=>c.id===modal.editContact?{...c,...data}:c);
+  else contactos=[...db.contactos,{id:"c"+Date.now(),...data}];
+  setDb({...db,empresas,contactos}); setModal(false);
+ }
+ function deleteContact(id){
+  askConfirm("ELIMINAR CONTACTO","El contacto se eliminará. Sus actividades históricas no serán borradas.",()=>{
+    setDb(d=>({...d,contactos:d.contactos.filter(c=>c.id!==id),oportunidades:d.oportunidades.map(o=>({...o,contactos:(o.contactos||[]).filter(x=>x!==id)}))}));
+    setModal(false); setDialog(null);
+  });
+ }
+ async function saveCompany(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  const data={nombre:f.get("nombre").trim(),industria:f.get("industria").trim(),estado:f.get("estado"),potencial:f.get("potencial")};
+  if(cloudReady){
+   const q=modal.editCompany?sb.from("empresas").update(data).eq("id",modal.editCompany):sb.from("empresas").insert({...data,user_id:session.user.id});
+   const {error}=await q;if(await cloudError(error))return;await loadCloud();
+  }else{let empresas=modal.editCompany?db.empresas.map(e=>e.id===modal.editCompany?{...e,...data}:e):[...db.empresas,{id:"e"+Date.now(),...data}];setDb({...db,empresas})}
+  setModal(false);
+ }
+ function deleteCompany(id){
+  if(db.contactos.some(c=>c.empresaId===id)||db.oportunidades.some(o=>o.empresaId===id)){
+    showInfo("EMPRESA EN USO","No se puede eliminar porque tiene contactos u oportunidades asociados."); return;
+  }
+  askConfirm("ELIMINAR EMPRESA","La empresa se eliminará definitivamente.",()=>{
+    setDb(d=>({...d,empresas:d.empresas.filter(e=>e.id!==id)})); setModal(false); setDialog(null);
+  });
+ }
+
+
+ async function saveTask(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  const row={titulo:f.get("texto").trim(),fecha:f.get("fecha")||null,prioridad:f.get("prioridad"),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null,completada:false};
+  if(cloudReady){const {error}=await sb.from("tareas").insert({...row,user_id:session.user.id});if(await cloudError(error))return;await loadCloud()}
+  else setDb(d=>({...d,tareas:[...(d.tareas||[]),{id:"t"+Date.now(),texto:row.titulo,fecha:row.fecha||"",prioridad:row.prioridad,empresaId:row.empresa_id||"",contactoId:row.contacto_id||"",oportunidadId:row.oportunidad_id||"",completada:false,creada:new Date().toISOString()}]}));
+  setModal(false);
+ }
+ async function toggleTask(id){
+  const t=(db.tareas||[]).find(x=>x.id===id);if(!t)return;
+  if(cloudReady){const {error}=await sb.from("tareas").update({completada:!t.completada}).eq("id",id);if(!(await cloudError(error)))await loadCloud()}
+  else setDb(d=>({...d,tareas:(d.tareas||[]).map(t=>t.id===id?{...t,completada:!t.completada}:t)}));
+ }
+ function deleteTask(id){
+  askConfirm("ELIMINAR TAREA","La tarea se eliminará definitivamente.",()=>{
+    if(cloudReady){sb.from("tareas").delete().eq("id",id).then(async({error})=>{setDialog(null);if(!(await cloudError(error)))await loadCloud()})}
+    else {setDb(d=>({...d,tareas:(d.tareas||[]).filter(t=>t.id!==id)}));setDialog(null)};
+  });
+ }
+ async function saveNote(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  const note={texto:f.get("texto").trim(),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null};
+  if(cloudReady){const {error}=await sb.from("notas").insert({...note,user_id:session.user.id});if(await cloudError(error))return;await loadCloud()}
+  else setDb(d=>({...d,notas:[{id:"n"+Date.now(),texto:note.texto,fecha:new Date().toISOString(),empresaId:note.empresa_id||"",contactoId:note.contacto_id||"",oportunidadId:note.oportunidad_id||""},...(d.notas||[])]}));
+  setModal(false);
+ }
+ function deleteNote(id){
+  askConfirm("ELIMINAR NOTA","La nota se eliminará definitivamente.",()=>{
+    if(cloudReady){sb.from("notas").delete().eq("id",id).then(async({error})=>{setDialog(null);if(!(await cloudError(error)))await loadCloud()})}
+    else {setDb(d=>({...d,notas:(d.notas||[]).filter(n=>n.id!==id)}));setDialog(null)};
+  });
+ }
+ const TaskCard=({t})=>{
+  const e=emp(t.empresaId), c=db.contactos.find(x=>x.id===t.contactoId), o=db.oportunidades.find(x=>x.id===t.oportunidadId);
+  return <div className="card"><div className="row"><div><div className="title">{t.completada?"[OK] ":""}{t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // PRIORIDAD {t.prioridad}{e&&` // ${e.nombre}`}{c&&` // ${c.nombre}`}{o&&` // ${o.nombre}`}</div></div><span className="tag">{t.completada?"HECHA":"TAREA"}</span></div>
+   <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
+ }
+ function saveOpportunity(ev){
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  const contactos=[...ev.currentTarget.querySelectorAll('input[name="oppContact"]:checked')].map(x=>x.value);
+  const data={
+   empresaId:f.get("empresaId"),nombre:f.get("nombre").trim(),etapa:f.get("etapa"),
+   valor:Number(f.get("valor")||0),probabilidad:Number(f.get("probabilidad")||0),
+   cierre:f.get("cierre")||"",contactos,proxima:f.get("proxima").trim(),fecha:f.get("fecha")||"",
+   nota:f.get("nota").trim()
+  };
+  let oportunidades;
+  if(modal.editOpp) oportunidades=db.oportunidades.map(o=>o.id===modal.editOpp?{...o,...data}:o);
+  else oportunidades=[...db.oportunidades,{id:"o"+Date.now(),...data}];
+  setDb({...db,oportunidades}); setModal(false);
+ }
+ function deleteOpportunity(id){
+  askConfirm("ELIMINAR OPORTUNIDAD","La oportunidad se eliminará. Sus actividades históricas no serán borradas.",()=>{
+    setDb(d=>({...d,oportunidades:d.oportunidades.filter(o=>o.id!==id)})); setModal(false); setDialog(null);
+  });
+ }
+ function moveStage(id,dir){
+  const stages=["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"];
+  setDb(d=>({...d,oportunidades:d.oportunidades.map(o=>{
+    if(o.id!==id)return o; let i=stages.indexOf(o.etapa); i=Math.max(0,Math.min(stages.length-1,i+dir)); return {...o,etapa:stages[i]};
+  })}));
+ }
+ if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
+ if(!session) return <div className="login-shell crt"><div className="login-box">
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.13</span></div>
+  <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
+  <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
+  <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
+  {authMsg&&<div className="statusline warn">{authMsg}</div>}
+  <div className="actions"><button className="btn primary" type="submit">ENTRAR</button></div></form>
+  <div className="meta" style={{marginTop:"16px"}}>La contraseña se procesa mediante Supabase Auth y no forma parte del código del CRM.</div>
+ </div></div>;
+ const Opportunity=({o})=><div className="card">
+   <div className="row"><div><div className="title">{emp(o.empresaId)?.nombre}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div>
+   <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
+   <div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR</button><button className="btn" onClick={()=>setModal({opp:o.id})}>REGISTRAR</button>{o.fecha&&<button className="btn dim" onClick={()=>completeOpp(o.id)}>✓ HECHO</button>}</div>
+ </div>;
+ return <div className="app crt">
+  <header>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.13</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
+  </header>
+  {tab==="hoy"&&<>
+   <div className="stats">
+    <div className="stat"><b>{vencidas.length+tareasVencidas.length}</b><span className="small">VENCIDAS</span></div>
+    <div className="stat"><b>{hoy.length+tareasHoy.length}</b><span className="small">HOY</span></div>
+    <div className="stat"><b>{proximas.length+tareas7.length}</b><span className="small">7 DÍAS</span></div>
+   </div>
+   <div className="section">
+    <div className="section-title"><span>&gt; VENCIDAS</span><span>{vencidas.length}</span></div>
+    {tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{vencidas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasVencidas.length&&!vencidas.length&&<div className="empty">SIN ACCIONES VENCIDAS.</div>}
+   </div>
+   <div className="section">
+    <div className="section-title"><span>&gt; HOY // {today}</span><span>{hoy.length}</span></div>
+    {tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}
+   </div>
+   <div className="section">
+    <div className="section-title"><span>&gt; PRÓXIMOS 7 DÍAS</span><span>{proximas.length}</span></div>
+    {tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}
+   </div>
+   <div className="section">
+    <div className="section-title"><span>&gt; RECONTACTAR</span><button className="btn dim" onClick={()=>setTab("red")}>VER RED</button></div>
+    {reconectar.length?reconectar.slice(0,6).map(c=><div className="card" key={c.id}>
+      <div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.potencial}</span></div>
+      <div className="meta">SIN CONTACTO: {daysSince(c.ultimo)} DÍAS // {c.intereses.join(", ")||"SIN TEMA"}{c.proximo&&` // PROGRAMADO: ${c.proximo}`}</div>
+      <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>CONTACTAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div>
+     </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}
+   </div>
+    </>}
+  {tab==="red"&&<div className="section"><div className="section-title"><span>&gt; RELACIONES</span><button className="btn primary" onClick={()=>setModal({newContact:true})}>+ NUEVO CONTACTO</button></div>
+   <input className="search" placeholder="BUSCAR > nombre, empresa, tema..." value={q} onChange={e=>setQ(e.target.value)}/>
+   {filteredContacts.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.estado}</span></div>
+    <div className="meta">ÚLTIMO: {c.ultimo||"—"} {c.ultimo&&`(${daysSince(c.ultimo)} días)`} // POTENCIAL: {c.potencial}</div>
+    <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div>
+    <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button></div>
+   </div>)}
+    </div>}
+  {tab==="pipe"&&<div className="section"><div className="section-title"><span>&gt; PIPELINE</span><button className="btn primary" onClick={()=>setModal({newOpp:true})}>+ NUEVA OPORTUNIDAD</button></div><div className="pipeline">
+   {["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(stage=><div className="stage" key={stage}><div className="stage-head">[{stage.toUpperCase()}] // {db.oportunidades.filter(o=>o.etapa===stage).length}</div>{db.oportunidades.filter(o=>o.etapa===stage).map(o=><Opportunity key={o.id} o={o}/>)}{!db.oportunidades.some(o=>o.etapa===stage)&&<div className="empty">--</div>}</div>)}
+  </div></div>}
+  {tab==="emp"&&<div className="section"><div className="section-title"><span>&gt; EMPRESAS</span><button className="btn primary" onClick={()=>setModal({newCompany:true})}>+ NUEVA</button></div>
+   {db.empresas.map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
+    </div>}
+  {tab==="data"&&<div className="section">
+   <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
+   <div className="card"><div className="meta">USUARIO: {session.user.email}</div>
+   {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}</div>}
+   <div className="meta" style={{marginTop:"8px"}}>SUPABASE ES LA FUENTE PRINCIPAL DE DATOS.</div>
+   <div className="actions"><button className="btn dim" onClick={loadCloud}>SINCRONIZAR AHORA</button></div>
+   </div>
+   <hr/>
+   <div className="section-title"><span>&gt; DATOS / BACKUP</span><span>JSON</span></div>
+   <div className="card">
+    <div className="title">ESTADO DE DATOS</div>
+    <div className="meta">
+     EMPRESAS: {db.empresas.length}<br/>
+     CONTACTOS: {db.contactos.length}<br/>
+     OPORTUNIDADES: {db.oportunidades.length}<br/>
+     ACTIVIDADES: {db.actividades.length}<br/>TAREAS: {(db.tareas||[]).length}<br/>NOTAS: {(db.notas||[]).length}<br/>
+     ÚLTIMO BACKUP: {lastBackup||"NUNCA"}
+    </div>
+   </div>
+   <div className="card">
+    <div className="title">&gt; EXPORTAR</div>
+    <div className="meta">DESCARGA TODOS LOS DATOS EN UN ARCHIVO JSON. GUÁRDALO EN DRIVE, ICLOUD O TU PC.</div>
+    <div className="actions"><button className="btn primary" onClick={exportJSON}>↓ EXPORTAR BACKUP JSON</button></div>
+   </div>
+   <div className="card">
+    <div className="title">&gt; IMPORTAR / RESTAURAR</div>
+    <div className="meta">REEMPLAZA LOS DATOS DE ESTE NAVEGADOR POR LOS CONTENIDOS EN UN BACKUP JSON.</div>
+    <label className="filepick">↑ SELECCIONAR BACKUP JSON<input type="file" accept=".json,application/json" onChange={importJSON}/></label>
+   </div>
+   <div className="card">
+    <div className="title">&gt; MANTENIMIENTO</div>
+    <div className="meta">RESTAURA LA BASE DE EJEMPLO ORIGINAL. ÚSALO SOLO PARA PRUEBAS.</div>
+    <div className="actions"><button className="btn danger" onClick={resetDemo}>RESTAURAR DEMO</button></div>
+   </div>
+   {dataMsg&&<div className="card"><div className={dataMsg.startsWith("ERROR")?"warn":"ok"}>{dataMsg}</div></div>}
+   <div className="small">NOTA: LOS DATOS OPERATIVOS SIGUEN GUARDÁNDOSE EN LOCALSTORAGE. EL JSON ES TU COPIA PORTABLE PARA RESPALDO O PARA PASAR LOS DATOS A OTRO DISPOSITIVO/NAVEGADOR.</div>
+  </div>}
+  {tab==="log"&&<div className="section"><div className="section-title"><span>&gt; REGISTRO</span><button className="btn" onClick={()=>setModal({quick:true})}>+ NUEVO</button></div>
+   {(()=>{
+     const orphanNotes=(db.notas||[]).filter(n=>!n.empresaId&&!n.contactoId&&!n.oportunidadId);
+     return <><div className="section-title"><span>&gt; NOTAS SIN VINCULAR</span><span>{orphanNotes.length}</span></div>
+     {orphanNotes.map(n=><div className="card" key={n.id}><div className="row"><span className="title">NOTA</span><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>)}
+     {!orphanNotes.length&&<div className="empty">SIN NOTAS PENDIENTES DE CLASIFICAR.</div>}</>
+   })()}
+   <hr/><div className="section-title"><span>&gt; ACTIVIDADES</span><span>{db.actividades.length}</span></div>
+   {db.actividades.map(a=><div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{emp(a.empresaId)?.nombre||"Sin empresa"}</div><div className="meta">{a.nota}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>)}
+   <hr/><div className="section-title"><span>&gt; TAREAS COMPLETADAS</span><span>{(db.tareas||[]).filter(t=>t.completada).length}</span></div>
+   {(db.tareas||[]).filter(t=>t.completada).slice().reverse().map(t=><div className="card" key={t.id}><div className="title">✓ {t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // {emp(t.empresaId)?.nombre||""}</div><div className="actions"><button className="btn dim" onClick={()=>toggleTask(t.id)}>REABRIR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>)}
+  </div>}
+  <button className="fab" aria-label="Acción rápida" onClick={()=>setModal({quick:true})}>+</button>
+  <nav className="nav">
+   {[["hoy","F1","HOY"],["red","F2","RED"],["pipe","F3","PIPE"],["emp","F4","EMP"],["log","F5","LOG"],["data","F6","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
+  </nav>
+  {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+    {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+      <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
+       <button className="btn primary" onClick={()=>setModal({newTask:true})}>✓ TAREA</button>
+       <button className="btn primary" onClick={()=>setModal({newNote:true})}>📝 NOTA</button>
+       <button className="btn" onClick={()=>setModal({})}>☎ ACTIVIDAD</button>
+       <button className="btn" onClick={()=>setModal({newContact:true})}>👤 CONTACTO</button>
+       <button className="btn" onClick={()=>setModal({newOpp:true})}>$ OPORTUNIDAD</button>
+      </div></div>
+     </>:modal.newTask?<><div className="section-title"><span>&gt; NUEVA TAREA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+      <form onSubmit={saveTask}>
+       <label>¿QUÉ HAY QUE HACER? *</label><textarea name="texto" required autoFocus placeholder="Ej: Llamar a Romina por Nación Servicios"></textarea>
+       <label>FECHA</label><input name="fecha" type="date" defaultValue={today}/>
+       <label>PRIORIDAD</label><select name="prioridad" defaultValue="Media"><option>Alta</option><option>Media</option><option>Baja</option></select>
+       <label>EMPRESA (OPCIONAL)</label><select name="empresaId" defaultValue={modal.company||""}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>CONTACTO (OPCIONAL)</label><select name="contactoId" defaultValue={modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
+       <div className="actions"><button className="btn primary">GUARDAR TAREA</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+      </form>
+     </>:modal.newNote?<><div className="section-title"><span>&gt; NOTA RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+      <form onSubmit={saveNote}>
+       <label>NOTA *</label><textarea name="texto" required autoFocus placeholder="> Escribe o pega algo que quieras recordar..."></textarea>
+       <label>EMPRESA (OPCIONAL)</label><select name="empresaId" defaultValue={modal.company||""}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>CONTACTO (OPCIONAL)</label><select name="contactoId" defaultValue={modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
+       <div className="actions"><button className="btn primary">GUARDAR NOTA</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+      </form>
+     </>:(modal.newContact||modal.editContact)?(()=>{
+      const c=modal.editContact?db.contactos.find(x=>x.id===modal.editContact):{};
+      return <><div className="section-title"><span>&gt; {modal.editContact?"EDITAR CONTACTO":"NUEVO CONTACTO"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+      <form onSubmit={saveContact}>
+       <label>NOMBRE *</label><input name="nombre" defaultValue={c.nombre||""} required autoFocus/>
+       <label>EMPRESA</label><select name="empresaId" defaultValue={c.empresaId||""}><option value="">-- SELECCIONAR / CREAR ABAJO --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>NUEVA EMPRESA (SOLO SI NO EXISTE)</label><input name="nuevaEmpresa" placeholder="Ej: Empresa ABC"/>
+       <label>CARGO</label><input name="cargo" defaultValue={c.cargo||""}/>
+       <label>TELÉFONO / WHATSAPP</label><input name="telefono" type="tel" defaultValue={c.telefono||""}/>
+       <label>EMAIL</label><input name="email" type="email" defaultValue={c.email||""}/>
+       <label>LINKEDIN</label><input name="linkedin" defaultValue={c.linkedin||""}/>
+       <label>RELACIÓN</label><select name="estado" defaultValue={c.estado||"Nuevo"}><option>Nuevo</option><option>Conocido</option><option>Cercano</option><option>Activo</option><option>Dormido</option></select>
+       <label>POTENCIAL</label><select name="potencial" defaultValue={c.potencial||"Medio"}><option>Alto</option><option>Medio</option><option>Bajo</option></select>
+       <label>INTERESES (SEPARADOS POR COMA)</label><input name="intereses" defaultValue={(c.intereses||[]).join(", ")} placeholder="ERP Cloud, HCM, UKG"/>
+       <label>¿CÓMO LO CONOCÍ?</label><input name="origen" defaultValue={c.origen||""} placeholder="Evento Oracle, referido, cliente..."/>
+       <label>NOTA</label><textarea name="nota" defaultValue={c.nota||""} placeholder="Contexto útil para el próximo contacto"></textarea>
+       <label>ÚLTIMO CONTACTO</label><input name="ultimo" type="date" defaultValue={c.ultimo||today}/>
+       <label>PRÓXIMO CONTACTO</label><input name="proximo" type="date" defaultValue={c.proximo||""}/>
+       <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+      </form></>
+    })():modal.viewContact?(()=>{
+      const c=db.contactos.find(x=>x.id===modal.viewContact); const acts=db.actividades.filter(a=>a.contactoId===c.id).slice(0,8);
+      const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
+      return <><div className="section-title"><span>&gt; FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <div className="title" style={{fontSize:"20px"}}>{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div>
+       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
+       <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div><hr/>
+       <div className="small">NOTA</div><div>{c.nota||"—"}</div><hr/>
+       <div className="small">ÚLTIMO CONTACTO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div>
+       <div className="actions">
+        {c.telefono&&<button className="btn" onClick={()=>location.href="tel:"+c.telefono}>LLAMAR</button>}
+        {c.telefono&&<button className="btn" onClick={()=>window.open("https://wa.me/"+c.telefono.replace(/\D/g,""),"_blank")}>WHATSAPP</button>}
+        {c.email&&<button className="btn" onClick={()=>location.href="mailto:"+c.email}>EMAIL</button>}
+        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
+       </div>
+       <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
+       {tasks.length?tasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
+       <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
+       {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
+       {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
+      </>
+    })():(modal.newOpp||modal.editOpp)?(()=>{
+      const o=modal.editOpp?db.oportunidades.find(x=>x.id===modal.editOpp):{};
+      const selected=o.contactos||[];
+      const companyContacts=db.contactos.filter(c=>!o.empresaId||c.empresaId===o.empresaId);
+      return <><div className="section-title"><span>&gt; {modal.editOpp?"EDITAR OPORTUNIDAD":"NUEVA OPORTUNIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <form onSubmit={saveOpportunity}>
+        <label>EMPRESA *</label><select name="empresaId" required defaultValue={o.empresaId||""}><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+        <label>OPORTUNIDAD *</label><input name="nombre" required defaultValue={o.nombre||""} placeholder="Ej: Oracle ERP Cloud"/>
+        <label>ETAPA</label><select name="etapa" defaultValue={o.etapa||"Lead"}>{["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(x=><option key={x}>{x}</option>)}</select>
+        <label>VALOR ESTIMADO</label><input name="valor" type="number" min="0" step="1" defaultValue={o.valor||0}/>
+        <label>PROBABILIDAD %</label><input name="probabilidad" type="number" min="0" max="100" defaultValue={o.probabilidad||20}/>
+        <label>CIERRE ESTIMADO</label><input name="cierre" type="date" defaultValue={o.cierre||""}/>
+        <label>CONTACTOS ASOCIADOS</label>
+        <div className="card">{db.contactos.length?db.contactos.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre} // {emp(c.empresaId)?.nombre}</label>):<span className="small">SIN CONTACTOS.</span>}</div>
+        <label>PRÓXIMA ACCIÓN</label><input name="proxima" defaultValue={o.proxima||""} placeholder="Ej: Reunión de revisión"/>
+        <label>FECHA PRÓXIMA ACCIÓN</label><input name="fecha" type="date" defaultValue={o.fecha||""}/>
+        <label>NOTA / CONTEXTO</label><textarea name="nota" defaultValue={o.nota||""} placeholder="Contexto comercial, competencia, decisión..."></textarea>
+        <div className="actions"><button className="btn primary">GUARDAR</button>{modal.editOpp&&<button className="btn danger" type="button" onClick={()=>deleteOpportunity(o.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+       </form></>
+    })():modal.viewOpp?(()=>{
+      const o=db.oportunidades.find(x=>x.id===modal.viewOpp), e=emp(o.empresaId);
+      const cs=(o.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
+      const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
+      const notes=(db.notas||[]).filter(n=>n.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <div className="title" style={{fontSize:"20px"}}>{e?.nombre}</div><div>{o.nombre}</div>
+       <div><span className="tag">{o.etapa}</span><span className="tag">PROB {o.probabilidad||0}%</span>{o.valor>0&&<span className="tag">${Number(o.valor).toLocaleString("es-CL")}</span>}</div>
+       <div className="meta">CIERRE: {o.cierre||"—"}<br/>PRÓXIMA ACCIÓN: {o.proxima||"SIN DEFINIR"} // {o.fecha||"SIN FECHA"}</div>
+       <hr/><div className="small">CONTACTOS</div><div>{cs.length?cs.map(c=><span className="tag" key={c.id}>{c.nombre}</span>):"—"}</div>
+       <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
+       <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
+       <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
+       {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
+       {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
+      </>
+    })():modal.viewCompany?(()=>{
+      const e=db.empresas.find(x=>x.id===modal.viewCompany);
+      const cs=db.contactos.filter(c=>c.empresaId===e.id);
+      const os=db.oportunidades.filter(o=>o.empresaId===e.id);
+      const ts=(db.tareas||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
+      const contactIds=new Set(cs.map(c=>c.id)), oppIds=new Set(os.map(o=>o.id));
+      const ns=(db.notas||[]).filter(n=>n.empresaId===e.id||contactIds.has(n.contactoId)||oppIds.has(n.oportunidadId)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      const acts=db.actividades.filter(a=>a.empresaId===e.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      return <><div className="section-title"><span>&gt; EMPRESA 360</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <div className="title" style={{fontSize:"22px"}}>{e.nombre}</div>
+       <div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div>
+       <div className="actions">
+        <button className="btn primary" onClick={()=>setModal({newTask:true,company:e.id})}>+ TAREA</button>
+        <button className="btn primary" onClick={()=>setModal({newNote:true,company:e.id})}>+ NOTA</button>
+        <button className="btn" onClick={()=>setModal({company:e.id})}>+ ACTIVIDAD</button>
+        <button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button>
+       </div>
+       <hr/><div className="section-title"><span>&gt; CONTACTOS</span><span>{cs.length}</span></div>
+       {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
+       <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
+       {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
+       <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{ts.filter(t=>!t.completada).length} ABIERTAS</span></div>
+       {ts.length?ts.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
+       <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{ns.length}</span></div>
+       {ns.length?ns.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
+       <hr/><div className="section-title"><span>&gt; ACTIVIDAD</span><span>{acts.length}</span></div>
+       {acts.length?acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD.</div>}
+      </>
+    })():(modal.newCompany||modal.editCompany)?(()=>{
+      const e=modal.editCompany?db.empresas.find(x=>x.id===modal.editCompany):{};
+      return <><div className="section-title"><span>&gt; {modal.editCompany?"EDITAR EMPRESA":"NUEVA EMPRESA"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <form onSubmit={saveCompany}><label>NOMBRE *</label><input name="nombre" required defaultValue={e.nombre||""}/><label>INDUSTRIA</label><input name="industria" defaultValue={e.industria||""}/><label>ESTADO</label><select name="estado" defaultValue={e.estado||"Prospecto"}><option>Prospecto</option><option>Cliente</option><option>Partner</option><option>Inactivo</option></select><label>POTENCIAL</label><select name="potencial" defaultValue={e.potencial||"Medio"}><option>Alto</option><option>Medio</option><option>Bajo</option></select><div className="actions"><button className="btn primary">GUARDAR</button>{modal.editCompany&&<button className="btn danger" type="button" onClick={()=>deleteCompany(e.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div></form>
+      </>
+    })():<>
+    {(()=>{
+      const a=modal.editActivity?db.actividades.find(x=>x.id===modal.editActivity):null;
+      const linkedOpp=a?.oportunidadId?db.oportunidades.find(o=>o.id===a.oportunidadId):null;
+      return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+      <form onSubmit={saveActivity}>
+       <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Email</option><option>Nota</option></select>
+       <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={a?.empresaId||modal.company||""}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>CONTACTO</label><select name="contactoId" defaultValue={a?.contactoId||modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       <label>OPORTUNIDAD</label><select name="oportunidadId" defaultValue={a?.oportunidadId||modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
+       <label>FECHA</label><input name="fecha" type="date" defaultValue={a?.fecha||today} required/>
+       <label>RESULTADO / NOTA</label><textarea name="nota" defaultValue={a?.nota||""} placeholder="> ¿Qué pasó?"></textarea>
+       <label>PRÓXIMA ACCIÓN</label><input name="accion" defaultValue={a?linkedOpp?.proxima||"":""} placeholder="Ej: Seguimiento propuesta"/>
+       <label>FECHA PRÓXIMA ACCIÓN</label><input name="proximo" type="date" defaultValue={a?linkedOpp?.fecha||"":""}/>
+       {a&&<div className="card"><label style={{margin:"0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="updateNext" value="yes"/>ACTUALIZAR TAMBIÉN LA PRÓXIMA ACCIÓN DE LA OPORTUNIDAD</label><div className="meta">DESMARCADO = SOLO CORRIGE EL REGISTRO HISTÓRICO.</div></div>}
+       <div className="actions"><button className="btn primary" type="submit">{a?"GUARDAR CAMBIOS":"GUARDAR"}</button>{a&&<button className="btn danger" type="button" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+      </form></>
+    })()}</>}
+   </div></div>}
+  {dialog&&<div className="overlay" style={{zIndex:120}} onClick={()=>setDialog(null)}>
+    <div className="modal" style={{maxWidth:"520px",alignSelf:"center"}} onClick={e=>e.stopPropagation()}>
+      <div className="section-title"><span>&gt; {dialog.title}</span><button className="btn dim" onClick={()=>setDialog(null)}>ESC</button></div>
+      <div className="card"><div style={{lineHeight:"1.55"}}>{dialog.message}</div></div>
+      <div className="actions">
+       {dialog.type==="confirm"&&<button className="btn danger" onClick={dialog.onConfirm}>CONFIRMAR</button>}
+       <button className="btn primary" onClick={()=>setDialog(null)}>{dialog.type==="confirm"?"CANCELAR":"ACEPTAR"}</button>
+      </div>
+    </div>
+  </div>}
+ </div>
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body></html>
