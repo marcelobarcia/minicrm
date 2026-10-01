@@ -138,6 +138,7 @@ function App(){
  const [authMsg,setAuthMsg]=useState(""), [cloudStatus,setCloudStatus]=useState("COMPROBANDO...");
  const [cloudCounts,setCloudCounts]=useState(null);
  const [cloudReady,setCloudReady]=useState(false);
+ const [cloudLoaded,setCloudLoaded]=useState(false);
  const [migrating,setMigrating]=useState(false);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
@@ -165,8 +166,12 @@ function App(){
    }
    setCloudCounts(counts);
    const total=Object.values(counts).reduce((a,b)=>a+b,0);
-   if(total>0){const fresh=toUI(rows);setDb(fresh);localStorage.setItem(KEY+"_cloud_migrated","1");}
+   const fresh=toUI(rows);
+   setDb(fresh);
+   localStorage.setItem(KEY,JSON.stringify(fresh));
+   localStorage.setItem(KEY+"_cloud_migrated","1");
    setCloudReady(true);
+   setCloudLoaded(true);
    setCloudStatus("CONECTADO");
   }catch(e){setCloudStatus("ERROR: "+e.message);}
  }
@@ -383,7 +388,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.16</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.17</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -391,6 +396,7 @@ function App(){
   <div className="actions"><button className="btn primary" type="submit">ENTRAR</button></div></form>
   <div className="meta" style={{marginTop:"16px"}}>La contraseña se procesa mediante Supabase Auth y no forma parte del código del CRM.</div>
  </div></div>;
+ if(session&&!cloudLoaded) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">SINCRONIZANDO DATOS DESDE SUPABASE...</div></div></div>;
  const Opportunity=({o})=><div className="card">
    <div className="row"><div><div className="title">{emp(o.empresaId)?.nombre}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div>
    <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
@@ -398,7 +404,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.16 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.17 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -446,7 +452,7 @@ function App(){
    <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
    <div className="card"><div className="meta">USUARIO: {session.user.email}</div>
    {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}</div>}
-   <div className="meta" style={{marginTop:"8px"}}>SUPABASE ES LA FUENTE PRINCIPAL DE DATOS.</div>
+   <div className="meta" style={{marginTop:"8px"}}>SUPABASE ES LA ÚNICA FUENTE OFICIAL. LA COPIA LOCAL SOLO SE USA COMO CACHÉ Y NUNCA REEMPLAZA DATOS DE LA NUBE.</div>
    <div className="actions"><button className="btn dim" onClick={loadCloud}>SINCRONIZAR AHORA</button></div>
    </div>
    <hr/>

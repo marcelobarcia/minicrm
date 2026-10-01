@@ -1,4 +1,4 @@
-const CACHE = "minicrm-shell-v016";
+const CACHE = "minicrm-shell-v017";
 const SHELL = [
   "./",
   "./index.html",
