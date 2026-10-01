@@ -140,6 +140,7 @@ function App(){
  const [cloudReady,setCloudReady]=useState(false);
  const [cloudLoaded,setCloudLoaded]=useState(false);
  const [migrating,setMigrating]=useState(false);
+ const [companySearch,setCompanySearch]=useState("");
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
   const {data:{subscription}}=sb.auth.onAuthStateChange((_event,s)=>{setSession(s||null);setAuthReady(true);});
@@ -388,7 +389,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.17</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.18</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -404,7 +405,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.17 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.18 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -446,7 +447,19 @@ function App(){
    {["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(stage=><div className="stage" key={stage}><div className="stage-head">[{stage.toUpperCase()}] // {db.oportunidades.filter(o=>o.etapa===stage).length}</div>{db.oportunidades.filter(o=>o.etapa===stage).map(o=><Opportunity key={o.id} o={o}/>)}{!db.oportunidades.some(o=>o.etapa===stage)&&<div className="empty">--</div>}</div>)}
   </div></div>}
   {tab==="emp"&&<div className="section"><div className="section-title"><span>&gt; EMPRESAS</span><button className="btn primary" onClick={()=>setModal({newCompany:true})}>+ NUEVA</button></div>
-   {db.empresas.map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
+   <div className="card">
+    <label>BUSCAR EMPRESA</label>
+    <input value={companySearch} onChange={e=>setCompanySearch(e.target.value)} placeholder="Nombre, industria, estado o potencial..." autoComplete="off"/>
+    <div className="row" style={{marginTop:"8px"}}><span className="small">{(()=>{
+      const q=companySearch.trim().toLowerCase();
+      return db.empresas.filter(e=>!q||[e.nombre,e.industria,e.estado,e.potencial].some(v=>(v||"").toLowerCase().includes(q))).length;
+    })()} DE {db.empresas.length} EMPRESAS</span>{companySearch&&<button className="btn dim" onClick={()=>setCompanySearch("")}>LIMPIAR</button>}</div>
+   </div>
+   {(()=>{
+    const q=companySearch.trim().toLowerCase();
+    const list=db.empresas.filter(e=>!q||[e.nombre,e.industria,e.estado,e.potencial].some(v=>(v||"").toLowerCase().includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+    return list.length?list.map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>):<div className="empty">SIN EMPRESAS QUE COINCIDAN CON LA BÚSQUEDA.</div>
+   })()}
     </div>}
   {tab==="data"&&<div className="section">
    <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
