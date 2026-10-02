@@ -100,7 +100,7 @@ kbd{border:1px solid var(--line);padding:1px 4px;color:var(--dim)}
 html,body,.modal,.modalbox,.org-scroll{scrollbar-width:none;-ms-overflow-style:none}
 html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modalbox::-webkit-scrollbar,.org-scroll::-webkit-scrollbar{display:none;width:0;height:0}
 
-</style>
+.org-viewport{position:relative;width:100%;overflow:hidden}.org-scroll{overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;overscroll-behavior-x:contain}.org-nav{display:flex;justify-content:space-between;align-items:center;margin:6px 0}.org-nav .org-hint{font-size:10px;color:var(--dim);text-align:center;flex:1}.org-nav button{min-width:46px}</style>
 
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#080600">
@@ -415,7 +415,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.22</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.23</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -424,6 +424,7 @@ function App(){
   <div className="meta" style={{marginTop:"16px"}}>La contraseña se procesa mediante Supabase Auth y no forma parte del código del CRM.</div>
  </div></div>;
  if(session&&!cloudLoaded) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">SINCRONIZANDO DATOS DESDE SUPABASE...</div></div></div>;
+ const OrgViewport=({children})=>{const ref=React.useRef(null);React.useEffect(()=>{const el=ref.current;if(el)requestAnimationFrame(()=>{el.scrollLeft=Math.max(0,(el.scrollWidth-el.clientWidth)/2)})},[]);const move=d=>{const el=ref.current;if(el)el.scrollBy({left:d*Math.max(320,el.clientWidth*.72),behavior:"smooth"})};return <div className="org-viewport"><div className="org-nav"><button className="btn dim" onClick={()=>move(-1)}>◀</button><div className="org-hint">DESPLAZAR MAPA</div><button className="btn dim" onClick={()=>move(1)}>▶</button></div><div className="org-scroll" ref={ref}>{children}</div></div>};
  const Opportunity=({o})=><div className="card">
    <div className="row"><div><div className="title">{emp(o.empresaId)?.nombre}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div>
    <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
@@ -431,7 +432,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.22 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.23 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -689,7 +690,7 @@ function App(){
              <div className="meta">A FAVOR: {countPos("A favor")} // NEUTRALES: {countPos("Neutral")} // EN CONTRA: {countPos("En contra")} // SIN CLASIFICAR: {countPos("Desconocida")}</div>
            </div>
            <div className="org-legend">LÍNEA CONTINUA = PARTICIPA // LÍNEA PUNTEADA = JEFE FUERA DE LA OPORTUNIDAD // TOCA PARA ABRIR FICHA</div>
-           {vs.length?<div className="org-scroll"><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></div>:<div className="empty">ASOCIA CONTACTOS A LA OPORTUNIDAD PARA CONSTRUIR EL MAPA.</div>}
+           {vs.length?<OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>:<div className="empty">ASOCIA CONTACTOS A LA OPORTUNIDAD PARA CONSTRUIR EL MAPA.</div>}
          </div>;
        })()}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
@@ -737,7 +738,7 @@ function App(){
              {kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}
            </li>
          };
-         return <div className="org-scroll"><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></div>
+         return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
