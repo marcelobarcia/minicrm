@@ -1,4 +1,4 @@
-const CACHE = "minicrm-shell-v024";
+const CACHE = "ninja-sales-terminal-v025";
 const SHELL = [
   "./",
   "./index.html",

@@ -1,11 +1,10 @@
-MiniCRM v0.24 — Triggers manuales
+Ninja Sales Terminal v0.25
 
-ORDEN:
-1. Ejecutar supabase_v024.sql en Supabase > SQL Editor.
-2. Subir index.html, manifest.webmanifest y sw.js a GitHub.
-3. Verificar V0.24 PWA.
+1. Si todavía no ejecutaste el SQL de V0.24, ejecutar supabase_v024.sql primero.
+2. Subir TODOS los archivos de esta carpeta al root de GitHub Pages.
+3. Reemplazar index.html, manifest.webmanifest y sw.js.
+4. Subir también favicon-32.png, icon-192.png, icon-512.png, apple-touch-icon.png y ninja-sales-terminal.png.
+5. En iPhone/iPad, si el icono anterior sigue visible, eliminar la app de la pantalla de inicio y volver a agregarla desde Safari.
 
-Los triggers NUEVOS aparecen en HOY.
-Al marcarlos REVISADO o DESCARTADO salen de HOY, pero permanecen en Empresa 360.
-Si tienen oportunidad vinculada, también aparecen dentro de esa oportunidad.
-No hay automatización de noticias en esta versión.
+La imagen pixel ámbar se usa como favicon/icono PWA.
+Nombre: Ninja Sales Terminal.
