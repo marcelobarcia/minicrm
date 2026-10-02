@@ -1,7 +1,9 @@
-MiniCRM PWA v0.21
+MiniCRM PWA v0.22
 
-- Oculta las barras visuales de desplazamiento, manteniendo scroll con rueda/touch.
-- La ficha de contacto muestra REPORTES DIRECTOS debajo de REPORTA A.
-- Cada subordinado es clickeable y abre su ficha.
-- Mantiene el organigrama gráfico de v0.20.
+- Oportunidad: nuevo MAPA DE DECISIÓN.
+- Muestra contactos asociados a la oportunidad conservando su jerarquía.
+- Incluye automáticamente jefes de la misma empresa aunque no participen en la oportunidad.
+- Los jefes externos a la oportunidad aparecen atenuados y con borde punteado.
+- Resumen de Decisores, Sponsors, Influenciadores y posición frente a nosotros.
+- Cada nodo abre la ficha del contacto.
 - No requiere SQL adicional.

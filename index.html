@@ -415,7 +415,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.21</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.22</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -431,7 +431,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.21 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.22 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -649,6 +649,49 @@ function App(){
        <div><span className="tag">{o.etapa}</span><span className="tag">PROB {o.probabilidad||0}%</span>{o.valor>0&&<span className="tag">${Number(o.valor).toLocaleString("es-CL")}</span>}</div>
        <div className="meta">CIERRE: {o.cierre||"—"}<br/>PRÓXIMA ACCIÓN: {o.proxima||"SIN DEFINIR"} // {o.fecha||"SIN FECHA"}</div>
        <hr/><div className="small">CONTACTOS</div><div>{cs.length?cs.map(c=><span className="tag" key={c.id}>{c.nombre}</span>):"—"}</div>
+       <hr/><div className="section-title"><span>&gt; MAPA DE DECISIÓN</span><span>{cs.length} EN OPORTUNIDAD</span></div>
+       {(()=>{
+         const oppIds=new Set(cs.map(c=>c.id));
+         const companyContacts=db.contactos.filter(c=>c.empresaId===o.empresaId);
+         const companyById=new Map(companyContacts.map(c=>[c.id,c]));
+         const visible=new Map();
+         // Include opportunity contacts plus their complete management chain.
+         cs.forEach(c=>{
+           let cur=c,guard=0;
+           while(cur&&guard++<30){
+             visible.set(cur.id,cur);
+             cur=cur.reportaA?companyById.get(cur.reportaA):null;
+           }
+         });
+         const vs=[...visible.values()];
+         const visibleIds=new Set(vs.map(c=>c.id));
+         const roots=vs.filter(c=>!c.reportaA||!visibleIds.has(c.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+         const countRole=r=>cs.filter(c=>(c.rolDecision||"Sin definir")===r).length;
+         const countPos=p=>cs.filter(c=>(c.posicion||"Desconocida")===p).length;
+         const renderNode=(c,path=new Set())=>{
+           if(!c||path.has(c.id))return null;
+           const next=new Set(path);next.add(c.id);
+           const kids=vs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+           const inside=oppIds.has(c.id);
+           return <li key={c.id}>
+             <div className="org-node" onClick={()=>setModal({viewContact:c.id})} style={!inside?{opacity:.55,borderStyle:"dashed"}:{}}>
+               <div className="org-name">{c.nombre}</div>
+               <div className="org-role">{c.cargo||"SIN CARGO"}</div>
+               <div className="org-meta">{c.rolDecision||"Sin definir"} // {c.posicion||"Desconocida"}</div>
+               {!inside&&<div className="org-meta">[ FUERA DE LA OPORTUNIDAD ]</div>}
+             </div>
+             {kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}
+           </li>
+         };
+         return <div>
+           <div className="card" style={{padding:"9px 11px"}}>
+             <div className="meta">DECISORES: {countRole("Decisor")} // SPONSORS: {countRole("Sponsor")} // INFLUENCIADORES: {countRole("Influenciador")}</div>
+             <div className="meta">A FAVOR: {countPos("A favor")} // NEUTRALES: {countPos("Neutral")} // EN CONTRA: {countPos("En contra")} // SIN CLASIFICAR: {countPos("Desconocida")}</div>
+           </div>
+           <div className="org-legend">LÍNEA CONTINUA = PARTICIPA // LÍNEA PUNTEADA = JEFE FUERA DE LA OPORTUNIDAD // TOCA PARA ABRIR FICHA</div>
+           {vs.length?<div className="org-scroll"><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></div>:<div className="empty">ASOCIA CONTACTOS A LA OPORTUNIDAD PARA CONSTRUIR EL MAPA.</div>}
+         </div>;
+       })()}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
