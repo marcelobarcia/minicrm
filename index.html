@@ -101,14 +101,19 @@ html,body,.modal,.modalbox,.org-scroll{scrollbar-width:none;-ms-overflow-style:n
 html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modalbox::-webkit-scrollbar,.org-scroll::-webkit-scrollbar{display:none;width:0;height:0}
 
 .org-viewport{position:relative;width:100%;overflow:hidden}.org-scroll{overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;overscroll-behavior-x:contain}.org-nav{display:flex;justify-content:space-between;align-items:center;margin:6px 0}.org-nav .org-hint{font-size:10px;color:var(--dim);text-align:center;flex:1}.org-nav button{min-width:46px}
-.header-main{display:flex;align-items:center;gap:14px;min-width:0}
-.header-avatar{width:68px;height:68px;object-fit:cover;border:1px solid var(--amber);background:#080600;image-rendering:pixelated;box-shadow:0 0 10px rgba(255,176,0,.16);flex:0 0 auto}
+.header-main{display:flex;align-items:center;min-width:0}
 .header-title{font-size:19px;letter-spacing:.5px;color:var(--bright)}
 .header-sub{margin-top:3px}
-@media(max-width:600px){
- .header-avatar{width:52px;height:52px}
+.header-brandline{display:grid;grid-template-columns:auto minmax(180px,1fr) auto;align-items:center;gap:18px;width:100%}
+.header-hero{display:flex;justify-content:center;align-items:center;min-width:0;height:118px;overflow:hidden}
+.header-hero img{height:112px;width:auto;max-width:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 5px rgba(255,176,0,.18))}
+.header-status{white-space:nowrap;align-self:start;padding-top:5px}
+@media(max-width:700px){
+ .header-brandline{grid-template-columns:1fr auto;gap:8px}
+ .header-hero{grid-column:1 / -1;grid-row:2;height:86px}
+ .header-hero img{height:82px}
  .header-title{font-size:15px}
- .header-main{gap:9px}
+ .header-status{grid-column:2;grid-row:1}
 }
 </style>
 
@@ -457,12 +462,12 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand">
+   <div className="brand header-brandline">
     <div className="header-main">
-     <img className="header-avatar" src="ninja-sales-terminal.png" alt="Ninja Sales Terminal"/>
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.26 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.27 PWA</div></div>
     </div>
-    <div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
+    <div className="header-hero"><img src="ninja-sales-terminal.png" alt="Ninja Sales Terminal"/></div>
+    <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
    </div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>

@@ -1,11 +1,10 @@
-Ninja Sales Terminal v0.26
+Ninja Sales Terminal v0.27
 
-Cambio visual del header:
-- Eliminado BD-CRM // ATAWAY.
-- Título principal: NINJA SALES TERMINAL.
-- Imagen pixel ámbar visible dentro del header.
-- Subtítulo: PERSONAL SALES CRM // v0.26 PWA.
-- Se conserva favicon/icono PWA.
+- Imagen pixel ámbar movida al espacio central del header.
+- Imagen considerablemente más grande y centrada.
+- Nombre y subtítulo quedan a la izquierda.
+- Fecha/estado Supabase permanecen a la derecha.
+- Adaptación responsive para móvil.
+- No requiere cambios SQL.
 
-Subir todos los archivos al root de GitHub Pages, reemplazando los existentes.
-No requiere cambios SQL respecto de v0.25.
+Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
