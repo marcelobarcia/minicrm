@@ -393,8 +393,12 @@ function App(){
  }
  async function saveTrigger(ev){
   ev.preventDefault();const f=new FormData(ev.currentTarget);
-  const row={empresa_id:f.get("empresaId")||null,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null,estado:"Nuevo"};
-  const {error}=await sb.from("triggers").insert({...row,user_id:session.user.id});if(await cloudError(error))return;await loadCloud();setModal(false);
+  const editing=modal&&modal.editTrigger;
+  const row={empresa_id:f.get("empresaId")||null,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null};
+  let error;
+  if(editing){({error}=await sb.from("triggers").update(row).eq("id",editing));}
+  else{({error}=await sb.from("triggers").insert({...row,estado:"Nuevo",user_id:session.user.id}));}
+  if(await cloudError(error))return;await loadCloud();setModal(false);
  }
  function updateTriggerState(id,estado){
   sb.from("triggers").update({estado}).eq("id",id).then(async({error})=>{if(!(await cloudError(error)))await loadCloud()});
@@ -464,7 +468,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.29 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.30 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -494,7 +498,7 @@ function App(){
     {(db.triggers||[]).filter(t=>t.estado==="Nuevo").length?(db.triggers||[]).filter(t=>t.estado==="Nuevo").sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}>
       <div className="row"><div><div className="title">{t.titulo}</div><div>{emp(t.empresaId)?.nombre||"SIN EMPRESA"} // {t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
       <div className="meta">{t.fecha} // {t.descripcion||"SIN DESCRIPCIÓN"}{t.fuente&&` // FUENTE: ${t.fuente}`}</div>
-      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
+      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
     </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}
    </div>
    <div className="section">
@@ -604,20 +608,23 @@ function App(){
        <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
        <div className="actions"><button className="btn primary">GUARDAR TAREA</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form>
-     </>:modal.newTrigger?<><div className="section-title"><span>&gt; NUEVO TRIGGER / SEÑAL</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+     </>:(modal.newTrigger||modal.editTrigger)?(()=>{
+      const t=modal.editTrigger?(db.triggers||[]).find(x=>x.id===modal.editTrigger):{};
+      return <><div className="section-title"><span>&gt; {modal.editTrigger?"EDITAR TRIGGER / SEÑAL":"NUEVO TRIGGER / SEÑAL"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveTrigger}>
-       <label>TÍTULO *</label><input name="titulo" required autoFocus placeholder="Ej: Nueva licitación publicada"/>
-       <label>EMPRESA *</label><select name="empresaId" defaultValue={modal.company||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
-       <label>FECHA</label><input type="date" name="fecha" defaultValue={today}/>
-       <label>TIPO</label><select name="tipo" defaultValue="Noticia"><option>Noticia</option><option>Licitación</option><option>Cambio ejecutivo</option><option>Inversión</option><option>Proyecto</option><option>Organizacional</option><option>Regulatorio</option><option>Competencia</option><option>Otro</option></select>
-       <label>RELEVANCIA</label><select name="relevancia" defaultValue="Media"><option>Alta</option><option>Media</option><option>Baja</option></select>
-       <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
-       <label>DESCRIPCIÓN</label><textarea name="descripcion" placeholder="¿Qué ocurrió y por qué puede ser relevante?"></textarea>
-       <label>FUENTE (OPCIONAL)</label><input name="fuente" placeholder="Ej: LinkedIn, Diario Financiero, Mercado Público..."/>
-       <label>LINK / URL (OPCIONAL)</label><input name="link" type="url" inputMode="url" placeholder="https://..."/>
-       <div className="actions"><button className="btn primary">GUARDAR TRIGGER</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
+       <label>TÍTULO *</label><input name="titulo" required autoFocus defaultValue={t.titulo||""} placeholder="Ej: Nueva licitación publicada"/>
+       <label>EMPRESA *</label><select name="empresaId" defaultValue={t.empresaId||modal.company||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>FECHA</label><input type="date" name="fecha" defaultValue={t.fecha||today}/>
+       <label>TIPO</label><select name="tipo" defaultValue={t.tipo||"Noticia"}><option>Noticia</option><option>Licitación</option><option>Cambio ejecutivo</option><option>Inversión</option><option>Proyecto</option><option>Organizacional</option><option>Regulatorio</option><option>Competencia</option><option>Otro</option></select>
+       <label>RELEVANCIA</label><select name="relevancia" defaultValue={t.relevancia||"Media"}><option>Alta</option><option>Media</option><option>Baja</option></select>
+       <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={t.oportunidadId||modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
+       <label>DESCRIPCIÓN</label><textarea name="descripcion" defaultValue={t.descripcion||""} placeholder="¿Qué ocurrió y por qué puede ser relevante?"></textarea>
+       <label>FUENTE (OPCIONAL)</label><input name="fuente" defaultValue={t.fuente||""} placeholder="Ej: LinkedIn, Diario Financiero, Mercado Público..."/>
+       <label>LINK / URL (OPCIONAL)</label><input name="link" type="url" inputMode="url" defaultValue={t.link||""} placeholder="https://..."/>
+       <div className="actions"><button className="btn primary">{modal.editTrigger?"GUARDAR CAMBIOS":"GUARDAR TRIGGER"}</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form>
-     </>:modal.newNote?<><div className="section-title"><span>&gt; NOTA RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+     </>;
+     })():modal.newNote?<><div className="section-title"><span>&gt; NOTA RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveNote}>
        <label>NOTA *</label><textarea name="texto" required autoFocus placeholder="> Escribe o pega algo que quieras recordar..."></textarea>
        <label>EMPRESA (OPCIONAL)</label><select name="empresaId" defaultValue={modal.company||""}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
@@ -751,7 +758,7 @@ function App(){
          </div>;
        })()}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn dim" onClick={()=>setModal({newTrigger:true,company:o.empresaId,opp:o.id})}>+ TRIGGER</button></div>
-       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div><div className="small">{t.descripcion||"—"}</div>{t.link&&<div className="actions"><button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button></div>}</div>)}
+       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
@@ -802,7 +809,7 @@ function App(){
          return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{(db.triggers||[]).filter(t=>t.empresaId===e.id).length}</span></div>
-       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.empresaId===e.id)&&<div className="empty">SIN TRIGGERS REGISTRADOS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
