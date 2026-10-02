@@ -1,9 +1,7 @@
-MiniCRM PWA v0.20
+MiniCRM PWA v0.21
 
-Mejoras:
-- Ficha de contacto: muestra REPORTES DIRECTOS automáticamente.
-- Cada reporte directo abre su ficha.
-- Empresa 360: MAPA DE RELACIONES ahora es un organigrama gráfico estilo terminal.
-- En móvil el organigrama permite desplazamiento horizontal.
-
-No requiere ejecutar SQL adicional. Usa los campos creados en v0.19.
+- Oculta las barras visuales de desplazamiento, manteniendo scroll con rueda/touch.
+- La ficha de contacto muestra REPORTES DIRECTOS debajo de REPORTA A.
+- Cada subordinado es clickeable y abre su ficha.
+- Mantiene el organigrama gráfico de v0.20.
+- No requiere SQL adicional.
