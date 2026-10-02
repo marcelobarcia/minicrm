@@ -197,7 +197,7 @@ function App(){
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
   const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
-  const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
+  const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",link:x.link||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
   return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers};
  }
  async function loadCloud(){
@@ -393,7 +393,7 @@ function App(){
  }
  async function saveTrigger(ev){
   ev.preventDefault();const f=new FormData(ev.currentTarget);
-  const row={empresa_id:f.get("empresaId")||null,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,estado:"Nuevo"};
+  const row={empresa_id:f.get("empresaId")||null,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null,estado:"Nuevo"};
   const {error}=await sb.from("triggers").insert({...row,user_id:session.user.id});if(await cloudError(error))return;await loadCloud();setModal(false);
  }
  function updateTriggerState(id,estado){
@@ -464,7 +464,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.28 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.29 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -494,7 +494,7 @@ function App(){
     {(db.triggers||[]).filter(t=>t.estado==="Nuevo").length?(db.triggers||[]).filter(t=>t.estado==="Nuevo").sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}>
       <div className="row"><div><div className="title">{t.titulo}</div><div>{emp(t.empresaId)?.nombre||"SIN EMPRESA"} // {t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
       <div className="meta">{t.fecha} // {t.descripcion||"SIN DESCRIPCIÓN"}{t.fuente&&` // FUENTE: ${t.fuente}`}</div>
-      <div className="actions"><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
+      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
     </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}
    </div>
    <div className="section">
@@ -613,7 +613,8 @@ function App(){
        <label>RELEVANCIA</label><select name="relevancia" defaultValue="Media"><option>Alta</option><option>Media</option><option>Baja</option></select>
        <label>OPORTUNIDAD (OPCIONAL)</label><select name="oportunidadId" defaultValue={modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
        <label>DESCRIPCIÓN</label><textarea name="descripcion" placeholder="¿Qué ocurrió y por qué puede ser relevante?"></textarea>
-       <label>FUENTE (OPCIONAL)</label><input name="fuente" placeholder="Ej: LinkedIn, prensa, Mercado Público..."/>
+       <label>FUENTE (OPCIONAL)</label><input name="fuente" placeholder="Ej: LinkedIn, Diario Financiero, Mercado Público..."/>
+       <label>LINK / URL (OPCIONAL)</label><input name="link" type="url" inputMode="url" placeholder="https://..."/>
        <div className="actions"><button className="btn primary">GUARDAR TRIGGER</button><button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form>
      </>:modal.newNote?<><div className="section-title"><span>&gt; NOTA RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
@@ -750,7 +751,7 @@ function App(){
          </div>;
        })()}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn dim" onClick={()=>setModal({newTrigger:true,company:o.empresaId,opp:o.id})}>+ TRIGGER</button></div>
-       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div><div className="small">{t.descripcion||"—"}</div></div>)}
+       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div><div className="small">{t.descripcion||"—"}</div>{t.link&&<div className="actions"><button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button></div>}</div>)}
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
@@ -801,7 +802,7 @@ function App(){
          return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{(db.triggers||[]).filter(t=>t.empresaId===e.id).length}</span></div>
-       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.empresaId===e.id)&&<div className="empty">SIN TRIGGERS REGISTRADOS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
