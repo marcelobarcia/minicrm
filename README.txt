@@ -1,10 +1,9 @@
-MiniCRM PWA v0.19 - Mapa de relaciones
+MiniCRM PWA v0.20
 
-ORDEN DE INSTALACIÓN
-1. Supabase > SQL Editor: ejecutar supabase_v019.sql.
-2. Después subir index.html, manifest.webmanifest y sw.js a GitHub.
-3. Verificar encabezado v0.19 PWA.
-4. Editar contactos existentes y completar Reporta a, Rol en la decisión y Posición.
-5. Abrir una empresa: aparecerá MAPA DE RELACIONES debajo de CONTACTOS.
+Mejoras:
+- Ficha de contacto: muestra REPORTES DIRECTOS automáticamente.
+- Cada reporte directo abre su ficha.
+- Empresa 360: MAPA DE RELACIONES ahora es un organigrama gráfico estilo terminal.
+- En móvil el organigrama permite desplazamiento horizontal.
 
-Los contactos existentes no se eliminan ni necesitan recrearse.
+No requiere ejecutar SQL adicional. Usa los campos creados en v0.19.

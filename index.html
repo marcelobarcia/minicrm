@@ -75,6 +75,26 @@ kbd{border:1px solid var(--line);padding:1px 4px;color:var(--dim)}
 .userline{margin-top:7px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
 .nav{padding-bottom:env(safe-area-inset-bottom)}
 .fab{margin-bottom:env(safe-area-inset-bottom)}
+
+/* TERMINAL ORG CHART */
+.org-scroll{overflow-x:auto;overflow-y:hidden;padding:18px 8px 26px;-webkit-overflow-scrolling:touch}
+.org-tree{display:flex;justify-content:center;min-width:max-content}
+.org-tree ul{padding-top:28px;position:relative;display:flex;justify-content:center;margin:0;padding-left:0}
+.org-tree li{list-style:none;text-align:center;position:relative;padding:28px 8px 0;margin:0}
+.org-tree li::before,.org-tree li::after{content:"";position:absolute;top:0;right:50%;border-top:1px solid var(--line);width:50%;height:28px}
+.org-tree li::after{right:auto;left:50%;border-left:1px solid var(--line)}
+.org-tree li:only-child::before,.org-tree li:only-child::after{display:none}
+.org-tree li:only-child{padding-top:0}
+.org-tree li:first-child::before,.org-tree li:last-child::after{border:0}
+.org-tree li:last-child::before{border-right:1px solid var(--line)}
+.org-tree ul ul::before{content:"";position:absolute;top:0;left:50%;border-left:1px solid var(--line);width:0;height:28px}
+.org-node{min-width:180px;max-width:230px;border:1px solid var(--amber);background:var(--bg);padding:10px 12px;display:inline-block;cursor:pointer;box-shadow:0 0 8px rgba(255,176,0,.12)}
+.org-node:hover{background:rgba(255,176,0,.08)}
+.org-node .org-name{font-weight:700;color:var(--bright);font-size:13px}
+.org-node .org-role{font-size:11px;margin-top:4px;color:var(--amber)}
+.org-node .org-meta{font-size:10px;margin-top:6px;color:var(--dim)}
+.org-legend{font-size:10px;color:var(--dim);margin:0 0 8px}
+
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -390,7 +410,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.19</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.20</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -406,7 +426,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.19 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.20 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -645,21 +665,24 @@ function App(){
        <hr/><div className="section-title"><span>&gt; CONTACTOS</span><span>{cs.length}</span></div>
        {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial} // {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
        <hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{cs.length} PERSONAS</span></div>
+       <div className="org-legend">JERARQUÍA REGISTRADA // TOCA UNA PERSONA PARA ABRIR SU FICHA</div>
        {cs.length?(()=>{
          const ids=new Set(cs.map(c=>c.id));
-         const roots=cs.filter(c=>!c.reportaA||!ids.has(c.reportaA));
-         const seen=new Set();
-         const Node=({c,level=0})=>{
-           if(!c||seen.has(c.id))return null;seen.add(c.id);
+         const roots=cs.filter(c=>!c.reportaA||!ids.has(c.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+         const renderNode=(c,path=new Set())=>{
+           if(!c||path.has(c.id))return null;
+           const next=new Set(path);next.add(c.id);
            const kids=cs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-           return <div key={c.id} style={{marginLeft:(level*22)+"px",borderLeft:level?"1px solid var(--line)":"none",paddingLeft:level?"12px":"0"}}>
-             <div className="card" style={{marginBottom:"7px",cursor:"pointer"}} onClick={()=>setModal({viewContact:c.id})}>
-               <div className="row"><div><div className="title">{level? "└─ ":""}{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.rolDecision||"Sin definir"} // {c.posicion||"Desconocida"}</div></div><span className="tag">{kids.length} REP.</span></div>
+           return <li key={c.id}>
+             <div className="org-node" onClick={()=>setModal({viewContact:c.id})}>
+               <div className="org-name">{c.nombre}</div>
+               <div className="org-role">{c.cargo||"SIN CARGO"}</div>
+               <div className="org-meta">{c.rolDecision||"Sin definir"} // {c.posicion||"Desconocida"}</div>
              </div>
-             {kids.map(k=><Node key={k.id} c={k} level={level+1}/>)}
-           </div>
+             {kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}
+           </li>
          };
-         return <div>{roots.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(r=><Node key={r.id} c={r}/>)}</div>
+         return <div className="org-scroll"><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></div>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
