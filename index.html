@@ -149,7 +149,7 @@ function App(){
  function parseExtra(v){try{return v?JSON.parse(v):{}}catch{return {}}}
  function toUI(rows){
   const empresas=rows.empresas.map(x=>({id:x.id,nombre:x.nombre,industria:x.industria||"",estado:x.estado||"Prospecto",potencial:x.potencial||"Medio"}));
-  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||""}});
+  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
   const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||""}});
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
@@ -301,6 +301,7 @@ function App(){
   const row={empresa_id:empresaId,nombre:f.get("nombre").trim(),cargo:f.get("cargo").trim()||null,telefono:f.get("telefono").trim()||null,email:f.get("email").trim()||null,
     estado:f.get("estado"),potencial:f.get("potencial"),intereses:(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean).join("|||"),
     ultimo_contacto:f.get("ultimo")||today,proximo_contacto:f.get("proximo")||null,
+    reporta_a_id:f.get("reportaA")||null,rol_decision:f.get("rolDecision")||"Sin definir",posicion:f.get("posicion")||"Desconocida",
     observaciones:JSON.stringify({linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
   const q=modal.editContact?sb.from("contactos").update(row).eq("id",modal.editContact):sb.from("contactos").insert({...row,user_id:session.user.id});
   const {error}=await q;if(await cloudError(error))return;setModal(false);await loadCloud();
@@ -389,7 +390,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.18</span></div>
+  <div className="section-title"><span>&gt; BD-CRM // ACCESO</span><span>v0.19</span></div>
   <div className="meta">SUPABASE AUTH // CLOUD // DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -405,7 +406,7 @@ function App(){
  </div>;
  return <div className="app crt">
   <header>
-   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.18 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
+   <div className="brand"><div><strong>BD-CRM // ATAWAY</strong><div className="small">PERSONAL SALES TERMINAL v0.19 PWA</div></div><div className="small">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div></div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   {tab==="hoy"&&<>
@@ -546,9 +547,12 @@ function App(){
       return <><div className="section-title"><span>&gt; {modal.editContact?"EDITAR CONTACTO":"NUEVO CONTACTO"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveContact}>
        <label>NOMBRE *</label><input name="nombre" defaultValue={c.nombre||""} required autoFocus/>
-       <label>EMPRESA</label><select name="empresaId" defaultValue={c.empresaId||""}><option value="">-- SELECCIONAR / CREAR ABAJO --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>EMPRESA</label><select name="empresaId" defaultValue={c.empresaId||modal.company||""}><option value="">-- SELECCIONAR / CREAR ABAJO --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
        <label>NUEVA EMPRESA (SOLO SI NO EXISTE)</label><input name="nuevaEmpresa" placeholder="Ej: Empresa ABC"/>
        <label>CARGO</label><input name="cargo" defaultValue={c.cargo||""}/>
+       <label>REPORTA A / JEFE DIRECTO</label><select name="reportaA" defaultValue={c.reportaA||""}><option value="">-- SIN JEFE DEFINIDO --</option>{db.contactos.filter(x=>x.id!==c.id&&(!c.empresaId||x.empresaId===c.empresaId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(x=><option key={x.id} value={x.id}>{x.nombre} // {x.cargo||"SIN CARGO"}</option>)}</select>
+       <label>ROL EN LA DECISIÓN</label><select name="rolDecision" defaultValue={c.rolDecision||"Sin definir"}><option>Sin definir</option><option>Decisor</option><option>Sponsor</option><option>Influenciador</option><option>Usuario</option><option>Técnico</option><option>Detractor</option></select>
+       <label>POSICIÓN FRENTE A NOSOTROS</label><select name="posicion" defaultValue={c.posicion||"Desconocida"}><option>Desconocida</option><option>A favor</option><option>Neutral</option><option>En contra</option></select>
        <label>TELÉFONO / WHATSAPP</label><input name="telefono" type="tel" defaultValue={c.telefono||""}/>
        <label>EMAIL</label><input name="email" type="email" defaultValue={c.email||""}/>
        <label>LINKEDIN</label><input name="linkedin" defaultValue={c.linkedin||""}/>
@@ -567,7 +571,7 @@ function App(){
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div>
-       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
+       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>REPORTA A: {db.contactos.find(x=>x.id===c.reportaA)?.nombre||"—"}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
        <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div><hr/>
        <div className="small">NOTA</div><div>{c.nota||"—"}</div><hr/>
        <div className="small">ÚLTIMO CONTACTO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div>
@@ -632,13 +636,31 @@ function App(){
        <div className="title" style={{fontSize:"22px"}}>{e.nombre}</div>
        <div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div>
        <div className="actions">
+        <button className="btn primary" onClick={()=>setModal({newContact:true,company:e.id})}>+ CONTACTO</button>
         <button className="btn primary" onClick={()=>setModal({newTask:true,company:e.id})}>+ TAREA</button>
         <button className="btn primary" onClick={()=>setModal({newNote:true,company:e.id})}>+ NOTA</button>
         <button className="btn" onClick={()=>setModal({company:e.id})}>+ ACTIVIDAD</button>
         <button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button>
        </div>
        <hr/><div className="section-title"><span>&gt; CONTACTOS</span><span>{cs.length}</span></div>
-       {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
+       {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial} // {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
+       <hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{cs.length} PERSONAS</span></div>
+       {cs.length?(()=>{
+         const ids=new Set(cs.map(c=>c.id));
+         const roots=cs.filter(c=>!c.reportaA||!ids.has(c.reportaA));
+         const seen=new Set();
+         const Node=({c,level=0})=>{
+           if(!c||seen.has(c.id))return null;seen.add(c.id);
+           const kids=cs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+           return <div key={c.id} style={{marginLeft:(level*22)+"px",borderLeft:level?"1px solid var(--line)":"none",paddingLeft:level?"12px":"0"}}>
+             <div className="card" style={{marginBottom:"7px",cursor:"pointer"}} onClick={()=>setModal({viewContact:c.id})}>
+               <div className="row"><div><div className="title">{level? "└─ ":""}{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.rolDecision||"Sin definir"} // {c.posicion||"Desconocida"}</div></div><span className="tag">{kids.length} REP.</span></div>
+             </div>
+             {kids.map(k=><Node key={k.id} c={k} level={level+1}/>)}
+           </div>
+         };
+         return <div>{roots.sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(r=><Node key={r.id} c={r}/>)}</div>
+       })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{ts.filter(t=>!t.completada).length} ABIERTAS</span></div>
