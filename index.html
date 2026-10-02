@@ -105,13 +105,13 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .header-title{font-size:19px;letter-spacing:.5px;color:var(--bright)}
 .header-sub{margin-top:3px}
 .header-brandline{display:grid;grid-template-columns:auto minmax(180px,1fr) auto;align-items:center;gap:18px;width:100%}
-.header-hero{display:flex;justify-content:center;align-items:center;min-width:0;height:118px;overflow:hidden}
-.header-hero img{height:112px;width:auto;max-width:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 5px rgba(255,176,0,.18))}
+.header-hero{display:flex;justify-content:center;align-items:center;min-width:0;height:154px;overflow:hidden}
+.header-hero img{height:148px;width:auto;max-width:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 7px rgba(255,176,0,.22))}
 .header-status{white-space:nowrap;align-self:start;padding-top:5px}
 @media(max-width:700px){
  .header-brandline{grid-template-columns:1fr auto;gap:8px}
- .header-hero{grid-column:1 / -1;grid-row:2;height:86px}
- .header-hero img{height:82px}
+ .header-hero{grid-column:1 / -1;grid-row:2;height:122px}
+ .header-hero img{height:116px}
  .header-title{font-size:15px}
  .header-status{grid-column:2;grid-row:1}
 }
@@ -464,9 +464,9 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.27 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.28 PWA</div></div>
     </div>
-    <div className="header-hero"><img src="ninja-sales-terminal.png" alt="Ninja Sales Terminal"/></div>
+    <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
    </div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>

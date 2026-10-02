@@ -1,10 +1,11 @@
-Ninja Sales Terminal v0.27
+Ninja Sales Terminal v0.28
 
-- Imagen pixel ámbar movida al espacio central del header.
-- Imagen considerablemente más grande y centrada.
-- Nombre y subtítulo quedan a la izquierda.
-- Fecha/estado Supabase permanecen a la derecha.
-- Adaptación responsive para móvil.
-- No requiere cambios SQL.
+- Se mantiene la estructura del header.
+- Se reemplaza la imagen central completa por el retrato pixel ámbar limpio.
+- El retrato central se muestra considerablemente más grande.
+- Título permanece a la izquierda.
+- Fecha y estado Supabase permanecen a la derecha.
+- Favicon e icono PWA se mantienen.
+- No requiere SQL.
 
 Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
