@@ -53,6 +53,18 @@ header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0
 .nav b{display:block;font-size:15px;margin-bottom:3px}
 .search{width:100%;background:#050400;border:1px solid var(--line);color:var(--bright);padding:10px;outline:none}
 .search:focus{border-color:var(--amber);box-shadow:0 0 10px var(--shadow)}
+.global-search-wrap{position:relative;margin:0 0 12px;z-index:35}
+.global-search-line{display:flex;align-items:center;border:1px solid var(--line);background:#050400}
+.global-search-prompt{padding:0 0 0 10px;color:var(--bright);white-space:nowrap;font-weight:bold}
+.global-search-input{border:0!important;box-shadow:none!important}
+.global-search-results{position:absolute;left:0;right:0;top:calc(100% + 3px);max-height:62vh;overflow:auto;background:#090600;border:1px solid var(--amber);box-shadow:0 8px 30px rgba(0,0,0,.8);padding:8px}
+.search-group-title{font-size:11px;color:var(--bright);padding:7px 5px 4px;border-bottom:1px solid var(--line)}
+.search-hit{width:100%;text-align:left;background:transparent;color:var(--amber);border:0;border-bottom:1px solid rgba(111,75,0,.45);padding:9px 6px;display:block}
+.search-hit:hover{background:rgba(255,176,0,.08)}
+.search-hit b{display:block;color:var(--bright);font-size:13px}
+.search-hit span{display:block;color:var(--dim);font-size:11px;margin-top:3px}
+.search-hint{font-size:10px;color:var(--dim);padding:5px 8px 0}
+@media(max-width:700px){.global-search-prompt{font-size:11px}.global-search-results{max-height:55vh}}
 .pipeline{display:grid;gap:10px}
 .stage{border-left:3px solid var(--line);padding-left:9px}
 .stage-head{color:var(--bright);margin:5px 0}
@@ -184,10 +196,22 @@ function App(){
  const [cloudLoaded,setCloudLoaded]=useState(false);
  const [migrating,setMigrating]=useState(false);
  const [companySearch,setCompanySearch]=useState("");
+ const [globalSearch,setGlobalSearch]=useState("");
+ const globalSearchRef=React.useRef(null);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
   const {data:{subscription}}=sb.auth.onAuthStateChange((_event,s)=>{setSession(s||null);setAuthReady(true);});
   return ()=>subscription.unsubscribe();
+ },[]);
+ useEffect(()=>{
+  const onKey=e=>{
+   if(e.key!=="/" || e.metaKey || e.ctrlKey || e.altKey)return;
+   const tag=(document.activeElement&&document.activeElement.tagName)||"";
+   if(["INPUT","TEXTAREA","SELECT"].includes(tag))return;
+   e.preventDefault(); globalSearchRef.current?.focus();
+  };
+  window.addEventListener("keydown",onKey);
+  return ()=>window.removeEventListener("keydown",onKey);
  },[]);
  function parseExtra(v){try{return v?JSON.parse(v):{}}catch{return {}}}
  function toUI(rows){
@@ -251,6 +275,16 @@ function App(){
   });
  }
  const emp=id=>db.empresas.find(x=>x.id===id);
+ const norm=v=>(v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+ const gs=norm(globalSearch.trim());
+ const globalResults=gs.length<2?[]:[
+  ...db.empresas.filter(e=>norm([e.nombre,e.industria,e.estado,e.potencial].join(" ")).includes(gs)).slice(0,6).map(e=>({kind:"EMPRESA",title:e.nombre,meta:[e.industria,e.estado,"Potencial "+e.potencial].filter(Boolean).join(" // "),open:()=>setModal({viewCompany:e.id})})),
+  ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" // "),open:()=>setModal({viewContact:c.id})})),
+  ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.proxima].filter(Boolean).join(" // "),open:()=>setModal({viewOpp:o.id})})),
+  ...(db.triggers||[]).filter(t=>norm([t.titulo,t.tipo,t.descripcion,t.fuente,t.relevancia,emp(t.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(t=>({kind:"TRIGGER",title:t.titulo,meta:[emp(t.empresaId)?.nombre,t.tipo,t.relevancia,t.estado].filter(Boolean).join(" // "),open:()=>t.oportunidadId?setModal({viewOpp:t.oportunidadId}):t.empresaId?setModal({viewCompany:t.empresaId}):setTab("hoy")})),
+  ...(db.notas||[]).filter(n=>norm([n.texto,emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre,db.oportunidades.find(o=>o.id===n.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,5).map(n=>({kind:"NOTA",title:(n.texto||"").slice(0,80),meta:[emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre].filter(Boolean).join(" // "),open:()=>n.contactoId?setModal({viewContact:n.contactoId}):n.oportunidadId?setModal({viewOpp:n.oportunidadId}):n.empresaId?setModal({viewCompany:n.empresaId}):setTab("log")}))
+ ];
+ function openGlobalResult(r){setGlobalSearch("");r.open();}
  const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa));
  const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
@@ -468,13 +502,25 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.31 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.32 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
    </div>
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
+  <div className="global-search-wrap">
+   <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, oportunidad, trigger o nota...  [ / ]" /></div>
+   {globalSearch&&<div className="global-search-results">
+    {globalSearch.trim().length<2?<div className="empty">ESCRIBE AL MENOS 2 CARACTERES.</div>:globalResults.length?<>
+     {["EMPRESA","CONTACTO","OPORTUNIDAD","TRIGGER","NOTA"].map(kind=>{
+      const rr=globalResults.filter(r=>r.kind===kind); if(!rr.length)return null;
+      return <div key={kind}><div className="search-group-title">&gt; {kind}{kind==="EMPRESA"?"S":kind==="CONTACTO"?"S":kind==="OPORTUNIDAD"?"ES":kind==="TRIGGER"?"S":"S"}</div>{rr.map((r,i)=><button className="search-hit" key={kind+i} onClick={()=>openGlobalResult(r)}><b>{r.title}</b><span>{r.meta||"ABRIR →"}</span></button>)}</div>
+     })}
+     <div className="search-hint">MOSTRANDO HASTA 31 COINCIDENCIAS // / PARA BUSCAR DESDE CUALQUIER PANTALLA</div>
+    </>:<div className="empty">SIN COINCIDENCIAS.</div>}
+   </div>}
+  </div>
   {tab==="hoy"&&<>
    <div className="stats">
     <div className="stat"><b>{vencidas.length+tareasVencidas.length}</b><span className="small">VENCIDAS</span></div>
