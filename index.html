@@ -68,11 +68,11 @@ header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0
 .contact-link-row{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 2px;border-bottom:1px solid rgba(111,75,0,.4)}
 .contact-link-row:last-child{border-bottom:0}
 .contact-link-label{font-size:11px;color:var(--dim)}
-.contact-link-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bright)}
+.contact-link-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--amber);font-size:12px;font-weight:400}
 .contact-link-action{background:transparent;border:0;color:var(--amber);padding:4px 2px;font-size:11px;white-space:nowrap}
 .contact-link-action:hover{text-decoration:underline;color:var(--bright)}
 .contact-link-action:disabled{color:var(--dim);cursor:default;text-decoration:none}
-@media(max-width:520px){.contact-link-row{grid-template-columns:68px minmax(0,1fr) auto}.contact-link-value{font-size:11px}.contact-link-action{font-size:10px}}
+@media(max-width:520px){.contact-link-row{grid-template-columns:68px minmax(0,1fr) auto}.contact-link-value{font-size:12px}.contact-link-action{font-size:10px}}
 @media(max-width:700px){.global-search-prompt{font-size:11px}.global-search-results{max-height:55vh}}
 .pipeline{display:grid;gap:10px}
 .stage{border-left:3px solid var(--line);padding-left:9px}
@@ -511,7 +511,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.34 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.35 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
