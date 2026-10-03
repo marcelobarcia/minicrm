@@ -468,7 +468,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.30 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.31 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -661,13 +661,27 @@ function App(){
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div>
-       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>REPORTA A: {db.contactos.find(x=>x.id===c.reportaA)?.nombre||"—"}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
+       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
+       {(()=>{const jefe=db.contactos.find(x=>x.id===c.reportaA);return <div style={{marginTop:"10px"}}><div className="small">REPORTA A</div>{jefe?<div className="card" style={{margin:"7px 0",padding:"9px 11px"}}><div className="row"><div><div className="title">{jefe.nombre}</div><div className="meta">{jefe.cargo||"SIN CARGO"} // {jefe.rolDecision||"Sin definir"} // {jefe.posicion||"Desconocida"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:jefe.id})}>VER FICHA →</button></div></div>:<div className="meta">SIN JEFE DEFINIDO</div>}</div>})()}
        {(()=>{
          const reports=db.contactos.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
          return <div style={{marginTop:"10px"}}>
            <div className="small">REPORTES DIRECTOS // {reports.length}</div>
            {reports.length?reports.map(r=><div key={r.id} className="card" style={{margin:"7px 0",padding:"9px 11px",cursor:"pointer"}} onClick={()=>setModal({viewContact:r.id})}><div className="row"><div><div className="title">{r.nombre}</div><div className="meta">{r.cargo||"SIN CARGO"} // {r.rolDecision||"Sin definir"} // {r.posicion||"Desconocida"}</div></div><span className="tag">FICHA</span></div></div>):<div className="meta">NINGUNO REGISTRADO</div>}
          </div>;
+       })()}
+       {(()=>{
+         const companyContacts=db.contactos.filter(x=>x.empresaId===c.empresaId);
+         const byId=new Map(companyContacts.map(x=>[x.id,x]));
+         const visible=new Map();
+         let cur=c,guard=0;
+         while(cur&&guard++<30){visible.set(cur.id,cur);cur=cur.reportaA?byId.get(cur.reportaA):null;}
+         const addDesc=(parent,depth=0)=>{if(!parent||depth>20)return;companyContacts.filter(x=>x.reportaA===parent.id).forEach(k=>{visible.set(k.id,k);addDesc(k,depth+1)})};
+         addDesc(c);
+         const vs=[...visible.values()], ids=new Set(vs.map(x=>x.id));
+         const roots=vs.filter(x=>!x.reportaA||!ids.has(x.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+         const renderNode=(x,path=new Set())=>{if(!x||path.has(x.id))return null;const next=new Set(path);next.add(x.id);const kids=vs.filter(k=>k.reportaA===x.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));const selected=x.id===c.id;return <li key={x.id}><div className="org-node" style={selected?{borderWidth:"2px",boxShadow:"0 0 14px rgba(255,176,0,.35)"}:null} onClick={()=>setModal({viewContact:x.id})}><div className="org-name">{selected?"> ":""}{x.nombre}</div><div className="org-role">{x.cargo||"SIN CARGO"}</div><div className="org-meta">{x.rolDecision||"Sin definir"} // {x.posicion||"Desconocida"}</div>{selected&&<div className="org-meta">[ CONTACTO ACTUAL ]</div>}</div>{kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}</li>};
+         return <><hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{vs.length} PERSONAS</span></div><div className="org-legend">CONTEXTO JERÁRQUICO // SUPERIORES + REPORTES DEL CONTACTO</div><OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport></>;
        })()}
        <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div><hr/>
        <div className="small">NOTA</div><div>{c.nota||"—"}</div><hr/>
