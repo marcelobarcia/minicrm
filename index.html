@@ -64,6 +64,15 @@ header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0
 .search-hit b{display:block;color:var(--bright);font-size:13px}
 .search-hit span{display:block;color:var(--dim);font-size:11px;margin-top:3px}
 .search-hint{font-size:10px;color:var(--dim);padding:5px 8px 0}
+.contact-links{margin-top:10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.contact-link-row{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 2px;border-bottom:1px solid rgba(111,75,0,.4)}
+.contact-link-row:last-child{border-bottom:0}
+.contact-link-label{font-size:11px;color:var(--dim)}
+.contact-link-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bright)}
+.contact-link-action{background:transparent;border:0;color:var(--amber);padding:4px 2px;font-size:11px;white-space:nowrap}
+.contact-link-action:hover{text-decoration:underline;color:var(--bright)}
+.contact-link-action:disabled{color:var(--dim);cursor:default;text-decoration:none}
+@media(max-width:520px){.contact-link-row{grid-template-columns:68px minmax(0,1fr) auto}.contact-link-value{font-size:11px}.contact-link-action{font-size:10px}}
 @media(max-width:700px){.global-search-prompt{font-size:11px}.global-search-results{max-height:55vh}}
 .pipeline{display:grid;gap:10px}
 .stage{border-left:3px solid var(--line);padding-left:9px}
@@ -502,7 +511,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.32 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.34 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -557,8 +566,8 @@ function App(){
    </div>
     </>}
   {tab==="red"&&<div className="section"><div className="section-title"><span>&gt; RELACIONES</span><button className="btn primary" onClick={()=>setModal({newContact:true})}>+ NUEVO CONTACTO</button></div>
-   <input className="search" placeholder="BUSCAR > nombre, empresa, tema..." value={q} onChange={e=>setQ(e.target.value)}/>
-   {filteredContacts.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.estado}</span></div>
+   <div className="small" style={{marginBottom:"8px"}}>{db.contactos.length} CONTACTOS // USA EL BUSCADOR UNIVERSAL DEL HEADER PARA ENCONTRAR UNA PERSONA.</div>
+   {db.contactos.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.estado}</span></div>
     <div className="meta">ÚLTIMO: {c.ultimo||"—"} {c.ultimo&&`(${daysSince(c.ultimo)} días)`} // POTENCIAL: {c.potencial}</div>
     <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div>
     <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button></div>
@@ -568,19 +577,8 @@ function App(){
    {["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(stage=><div className="stage" key={stage}><div className="stage-head">[{stage.toUpperCase()}] // {db.oportunidades.filter(o=>o.etapa===stage).length}</div>{db.oportunidades.filter(o=>o.etapa===stage).map(o=><Opportunity key={o.id} o={o}/>)}{!db.oportunidades.some(o=>o.etapa===stage)&&<div className="empty">--</div>}</div>)}
   </div></div>}
   {tab==="emp"&&<div className="section"><div className="section-title"><span>&gt; EMPRESAS</span><button className="btn primary" onClick={()=>setModal({newCompany:true})}>+ NUEVA</button></div>
-   <div className="card">
-    <label>BUSCAR EMPRESA</label>
-    <input value={companySearch} onChange={e=>setCompanySearch(e.target.value)} placeholder="Nombre, industria, estado o potencial..." autoComplete="off"/>
-    <div className="row" style={{marginTop:"8px"}}><span className="small">{(()=>{
-      const q=companySearch.trim().toLowerCase();
-      return db.empresas.filter(e=>!q||[e.nombre,e.industria,e.estado,e.potencial].some(v=>(v||"").toLowerCase().includes(q))).length;
-    })()} DE {db.empresas.length} EMPRESAS</span>{companySearch&&<button className="btn dim" onClick={()=>setCompanySearch("")}>LIMPIAR</button>}</div>
-   </div>
-   {(()=>{
-    const q=companySearch.trim().toLowerCase();
-    const list=db.empresas.filter(e=>!q||[e.nombre,e.industria,e.estado,e.potencial].some(v=>(v||"").toLowerCase().includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-    return list.length?list.map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>):<div className="empty">SIN EMPRESAS QUE COINCIDAN CON LA BÚSQUEDA.</div>
-   })()}
+   <div className="small" style={{marginBottom:"8px"}}>{db.empresas.length} EMPRESAS // USA EL BUSCADOR UNIVERSAL DEL HEADER PARA ENCONTRAR UNA EMPRESA.</div>
+   {db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
     </div>}
   {tab==="data"&&<div className="section">
    <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
@@ -707,7 +705,12 @@ function App(){
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div>
-       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>TEL: {c.telefono||"—"}<br/>EMAIL: {c.email||"—"}<br/>LINKEDIN: {c.linkedin||"—"}<br/>ORIGEN: {c.origen||"—"}</div>
+       <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>ORIGEN: {c.origen||"—"}</div>
+       <div className="contact-links">
+        <div className="contact-link-row"><span className="contact-link-label">EMAIL</span><span className="contact-link-value">{c.email||"—"}</span>{c.email?<button className="contact-link-action" onClick={()=>location.href="mailto:"+c.email}>[ENVIAR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+        <div className="contact-link-row"><span className="contact-link-label">TELÉFONO</span><span className="contact-link-value">{c.telefono||"—"}</span>{c.telefono?<button className="contact-link-action" onClick={()=>window.open("https://wa.me/"+c.telefono.replace(/\D/g,""),"_blank","noopener,noreferrer")}>[WHATSAPP →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+        <div className="contact-link-row"><span className="contact-link-label">LINKEDIN</span><span className="contact-link-value">{c.linkedin||"—"}</span>{c.linkedin?<button className="contact-link-action" onClick={()=>{let u=c.linkedin.trim();if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener,noreferrer")}}>[ABRIR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+       </div>
        {(()=>{const jefe=db.contactos.find(x=>x.id===c.reportaA);return <div style={{marginTop:"10px"}}><div className="small">REPORTA A</div>{jefe?<div className="card" style={{margin:"7px 0",padding:"9px 11px"}}><div className="row"><div><div className="title">{jefe.nombre}</div><div className="meta">{jefe.cargo||"SIN CARGO"} // {jefe.rolDecision||"Sin definir"} // {jefe.posicion||"Desconocida"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:jefe.id})}>VER FICHA →</button></div></div>:<div className="meta">SIN JEFE DEFINIDO</div>}</div>})()}
        {(()=>{
          const reports=db.contactos.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
@@ -733,9 +736,6 @@ function App(){
        <div className="small">NOTA</div><div>{c.nota||"—"}</div><hr/>
        <div className="small">ÚLTIMO CONTACTO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div>
        <div className="actions">
-        {c.telefono&&<button className="btn" onClick={()=>location.href="tel:"+c.telefono}>LLAMAR</button>}
-        {c.telefono&&<button className="btn" onClick={()=>window.open("https://wa.me/"+c.telefono.replace(/\D/g,""),"_blank")}>WHATSAPP</button>}
-        {c.email&&<button className="btn" onClick={()=>location.href="mailto:"+c.email}>EMAIL</button>}
         <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
        </div>
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>

@@ -1,17 +1,14 @@
-Ninja Sales Terminal v0.32
+Ninja Sales Terminal v0.34
 
-NOVEDAD
-- Buscador Universal permanente debajo del header.
-- Busca simultáneamente Empresas, Contactos, Oportunidades, Triggers y Notas.
-- Los resultados aparecen agrupados por tipo.
-- Al seleccionar un resultado navega directamente a su ficha/contexto.
-- Atajo de teclado "/" en PC para enfocar el buscador desde cualquier pantalla.
-- Búsqueda tolerante a mayúsculas/minúsculas y acentos.
+NOVEDAD - FICHA DE CONTACTO
+- EMAIL: muestra el dato y [ENVIAR →], que abre la aplicación de correo predeterminada.
+- TELÉFONO: muestra el dato y [WHATSAPP →], que abre el chat de WhatsApp.
+- LINKEDIN: muestra el dato y [ABRIR →], que abre el perfil.
+- Si LinkedIn fue guardado sin http/https, Ninja agrega https:// al abrirlo.
+- Los botones grandes de EMAIL/WHATSAPP/LLAMAR del bloque inferior fueron eliminados para evitar duplicación.
+- Si un dato está vacío se muestra — y no hay acción disponible.
 - No requiere cambios SQL.
-
-NOTA DE ARQUITECTURA
-Esta primera versión busca sobre los datos ya cargados por Ninja. Más adelante puede conservarse la misma interfaz y pasar la búsqueda a consultas Supabase bajo demanda para volúmenes muy grandes.
 
 INSTALACIÓN
 Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
-Verificar PERSONAL SALES CRM // v0.32 PWA.
+Verificar PERSONAL SALES CRM // v0.34 PWA.
