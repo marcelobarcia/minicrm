@@ -371,8 +371,19 @@ function App(){
     ({error}=await sb.from("contactos").update(upd).eq("id",contactoId));if(await cloudError(error))return;
   }
   const shouldUpdate=!editing||f.get("updateNext")==="yes";
-  if(shouldUpdate&&oportunidadId&&f.get("accion")){
-    ({error}=await sb.from("oportunidades").update({proxima_accion:f.get("accion"),fecha_proxima_accion:f.get("proximo")||null}).eq("id",oportunidadId));if(await cloudError(error))return;
+  const nextTitle=(f.get("accion")||"").trim(), nextDate=f.get("proximo")||null;
+  if(shouldUpdate&&oportunidadId&&nextTitle){
+    ({error}=await sb.from("oportunidades").update({proxima_accion:nextTitle,fecha_proxima_accion:nextDate}).eq("id",oportunidadId));if(await cloudError(error))return;
+    // One pending follow-up task per opportunity. Reuse/update it instead of creating duplicates.
+    // Manual tasks are preserved; a pending task matching the previous/next opportunity action is treated as the follow-up.
+    const oppBefore=db.oportunidades.find(o=>o.id===oportunidadId);
+    const previousTitle=(oppBefore?.proxima||"").trim();
+    const candidates=(db.tareas||[]).filter(t=>!t.completada&&t.oportunidadId===oportunidadId);
+    const followTask=candidates.find(t=>previousTitle&&t.texto===previousTitle)||candidates.find(t=>t.texto===nextTitle);
+    const taskRow={titulo:nextTitle,fecha:nextDate,prioridad:"Normal",empresa_id:empresaId||oppBefore?.empresaId||null,contacto_id:contactoId||null,oportunidad_id:oportunidadId,completada:false};
+    if(followTask)({error}=await sb.from("tareas").update(taskRow).eq("id",followTask.id));
+    else ({error}=await sb.from("tareas").insert({...taskRow,user_id:session.user.id}));
+    if(await cloudError(error))return;
   }
   setModal(false);await loadCloud();
  }
@@ -566,7 +577,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.41 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.42 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -833,6 +844,7 @@ function App(){
       const cs=(o.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
       const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
       const notes=(db.notas||[]).filter(n=>n.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      const oppTasks=(db.tareas||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{e?.nombre}</div><div>{o.nombre}</div>
        <div><span className="tag">{o.etapa}</span><span className="tag">PROB {o.probabilidad||0}%</span>{o.valor>0&&<span className="tag">${Number(o.valor).toLocaleString("es-CL")}</span>}</div>
@@ -886,6 +898,8 @@ function App(){
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
+       <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{oppTasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
+       {oppTasks.length?oppTasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
        <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
