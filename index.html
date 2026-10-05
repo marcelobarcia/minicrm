@@ -428,6 +428,13 @@ function App(){
   const r=(db.radar||[]).find(x=>x.id===radarId);if(!r)return;const evidencias=(r.evidencias||[]).filter(e=>e.id!==evidenceId);
   const {error}=await sb.from("radar").update({evidencias}).eq("id",radarId);if(!(await cloudError(error)))await loadCloud();
  }
+ async function saveRadarEvidence(ev){
+  ev.preventDefault();const f=new FormData(ev.currentTarget);
+  const r=(db.radar||[]).find(x=>x.id===modal.editEvidenceRadar);if(!r)return;
+  const evidencias=(r.evidencias||[]).map(e=>e.id===modal.editEvidence?{...e,fecha:f.get("fecha")||null,titulo:f.get("titulo").trim(),fuente:f.get("fuente").trim()||"Mercado Público",link:f.get("link").trim()||""}:e);
+  const {error}=await sb.from("radar").update({evidencias}).eq("id",r.id);
+  if(await cloudError(error))return;await loadCloud();setModal({viewRadar:r.id});
+ }
  async function doActivateRadar(r,existing){
   let companyId=existing?.id;
   if(!companyId){const {data,error}=await sb.from("empresas").insert({user_id:session.user.id,nombre:r.nombre,industria:r.sector||"Sector Público",estado:"Prospecto",potencial:"Medio"}).select().single();if(await cloudError(error))return;companyId=data.id;}
@@ -539,7 +546,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.36 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.37 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -921,7 +928,20 @@ function App(){
        <div className="actions">{r.empresaId?<button className="btn primary" onClick={()=>setModal({viewCompany:r.empresaId})}>VER EMPRESA →</button>:<button className="btn primary" onClick={()=>activateRadar(r.id)}>ACTIVAR COMO EMPRESA →</button>}<button className="btn dim" onClick={()=>setModal({editRadar:r.id})}>EDITAR</button></div>
        <hr/><div className="small">NOTAS / HIPÓTESIS</div><div>{r.notas||"—"}</div>
        <hr/><div className="section-title"><span>&gt; EVIDENCIAS</span><span>{(r.evidencias||[]).length}</span></div>
-       {(r.evidencias||[]).length?(r.evidencias||[]).map(ev=><div className="card" key={ev.id}><div className="row"><div><div className="title">{ev.titulo||"Evidencia"}</div><div className="meta">{ev.fecha||"—"} // {ev.fuente||"Mercado Público"}</div></div></div><div className="actions">{ev.link&&<button className="btn dim" onClick={()=>window.open(ev.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn danger" onClick={()=>removeRadarEvidence(r.id,ev.id)}>BORRAR</button></div></div>):<div className="empty">SIN EVIDENCIAS.</div>}
+       {(r.evidencias||[]).length?(r.evidencias||[]).map(ev=><div className="card" key={ev.id}><div className="row"><div><div className="title">{ev.titulo||"Evidencia"}</div><div className="meta">{ev.fecha||"—"} // {ev.fuente||"Mercado Público"}</div></div></div><div className="actions">{ev.link&&<button className="btn dim" onClick={()=>window.open(ev.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editEvidence:ev.id,editEvidenceRadar:r.id})}>EDITAR</button><button className="btn danger" onClick={()=>removeRadarEvidence(r.id,ev.id)}>BORRAR</button></div></div>):<div className="empty">SIN EVIDENCIAS.</div>}
+      </>
+    })():(modal.editEvidence&&modal.editEvidenceRadar)?(()=>{
+      const r=(db.radar||[]).find(x=>x.id===modal.editEvidenceRadar)||{};
+      const ev=(r.evidencias||[]).find(x=>x.id===modal.editEvidence)||{};
+      return <><div className="section-title"><span>&gt; EDITAR EVIDENCIA</span><button className="btn dim" onClick={()=>setModal({viewRadar:r.id})}>ESC</button></div>
+       <div className="small" style={{marginBottom:"10px"}}>RADAR // {r.nombre||"—"}</div>
+       <form onSubmit={saveRadarEvidence}>
+        <label>FECHA</label><input type="date" name="fecha" defaultValue={ev.fecha||today}/>
+        <label>TÍTULO / HALLAZGO *</label><input name="titulo" required defaultValue={ev.titulo||""} placeholder="Ej: Licitación soporte SAP"/>
+        <label>FUENTE</label><input name="fuente" defaultValue={ev.fuente||"Mercado Público"}/>
+        <label>LINK</label><input type="url" name="link" defaultValue={ev.link||""} placeholder="https://..."/>
+        <div className="actions"><button className="btn primary">GUARDAR CAMBIOS</button><button className="btn dim" type="button" onClick={()=>setModal({viewRadar:r.id})}>CANCELAR</button></div>
+       </form>
       </>
     })():(modal.newRadar||modal.editRadar)?(()=>{
       const r=modal.editRadar?(db.radar||[]).find(x=>x.id===modal.editRadar):{};
