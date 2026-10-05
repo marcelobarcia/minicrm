@@ -566,7 +566,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.39 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.40 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -764,6 +764,10 @@ function App(){
       const c=db.contactos.find(x=>x.id===modal.viewContact); const acts=db.actividades.filter(a=>a.contactoId===c.id).slice(0,8);
       const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
+      const contactOpps=(db.oportunidades||[]).filter(o=>(o.contactos||[]).includes(c.id)).sort((a,b)=>{
+       const closed=x=>["Ganada","Perdida"].includes(x.etapa)?1:0;
+       return closed(a)-closed(b)||((a.fecha||"9999").localeCompare(b.fecha||"9999"))||a.nombre.localeCompare(b.nombre,"es");
+      });
       return <><div className="section-title"><span>&gt; FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div>
        <div className="meta">RELACIÓN: {c.estado} // POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} // POSICIÓN: {c.posicion||"Desconocida"}<br/>ORIGEN: {c.origen||"—"}</div>
@@ -799,6 +803,8 @@ function App(){
        <div className="actions">
         <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
        </div>
+       <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{contactOpps.length}</span></div>
+       {contactOpps.length?contactOpps.map(o=><div className="card" key={o.id}><div className="row"><div><div className="title">{emp(o.empresaId)?.nombre||"SIN EMPRESA"}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div><div className="meta">PRÓX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR →</button></div></div>):<div className="empty">SIN OPORTUNIDADES ASOCIADAS.</div>}
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
        {tasks.length?tasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
