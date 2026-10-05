@@ -1,10 +1,17 @@
-Ninja Sales Terminal v0.35
+Ninja Sales Terminal v0.36
 
-AJUSTE VISUAL
-- Email, teléfono y LinkedIn en la ficha de contacto ahora usan tipografía más pequeña.
-- Se eliminó el resaltado visual de esos valores.
-- Se mantienen las acciones [ENVIAR →], [WHATSAPP →] y [ABRIR →].
-- No requiere cambios SQL.
+NUEVO: RADAR
+- Nueva entidad independiente para organizaciones todavía no activadas comercialmente.
+- Guarda sector, sistema inferido, confianza, estado, notas e historial de evidencias.
+- Cada evidencia puede guardar fecha, hallazgo, fuente y link (ideal para Mercado Público).
+- Ficha RADAR con [ACTIVAR COMO EMPRESA →].
+- Al activar, crea la Empresa y conserva/vincula el registro RADAR como ACTIVADO.
+- Si ya existe una empresa con el mismo nombre, Ninja avisa y permite vincularla en vez de duplicarla.
+- Un RADAR activado permite [VER EMPRESA →].
+- RADAR participa del Buscador Universal.
+- Acción rápida + RADAR.
 
 INSTALACIÓN
-Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
+1. Ejecutar supabase_v036.sql UNA VEZ en Supabase > SQL Editor.
+2. Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
+3. Verificar PERSONAL SALES CRM // v0.36 PWA.

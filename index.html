@@ -46,7 +46,7 @@ header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0
 .btn.dim{border-color:var(--line);color:var(--dim)}
 .btn.danger{border-color:var(--danger);color:var(--danger)}
 .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(780px,100%);display:grid;
- grid-template-columns:repeat(6,1fr);background:#090600;border-top:1px solid var(--amber);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+ grid-template-columns:repeat(7,1fr);background:#090600;border-top:1px solid var(--amber);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
 .nav button{border:0;border-right:1px solid var(--line);background:transparent;color:var(--dim);padding:12px 3px 10px;font-size:11px}
 .nav button.active{color:var(--bright);background:rgba(255,176,0,.08)}
 .fab{position:fixed;right:max(18px,calc((100vw - 780px)/2 + 18px));bottom:78px;z-index:45;width:54px;height:54px;border-radius:50%;background:var(--amber);color:#120b00;border:0;font-size:30px;font-weight:bold;box-shadow:0 0 22px var(--shadow)}
@@ -231,13 +231,14 @@ function App(){
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
   const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
   const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",link:x.link||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
-  return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers};
+  const radar=(rows.radar||[]).map(x=>({id:x.id,nombre:x.nombre||"",sector:x.sector||"Público",sistema:x.sistema_inferido||"",confianza:x.confianza||"Media",estado:x.estado||"Observando",notas:x.notas||"",empresaId:x.empresa_id||"",evidencias:Array.isArray(x.evidencias)?x.evidencias:[],createdAt:x.created_at}));
+  return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers,radar};
  }
  async function loadCloud(){
   if(!session)return;
   setCloudStatus("SINCRONIZANDO...");
   try{
-   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers"], rows={}, counts={};
+   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar"], rows={}, counts={};
    for(const t of names){
     const {data,error}=await sb.from(t).select("*").order("created_at",{ascending:true});
     if(error)throw error; rows[t]=data||[];counts[t]=rows[t].length;
@@ -288,6 +289,7 @@ function App(){
  const gs=norm(globalSearch.trim());
  const globalResults=gs.length<2?[]:[
   ...db.empresas.filter(e=>norm([e.nombre,e.industria,e.estado,e.potencial].join(" ")).includes(gs)).slice(0,6).map(e=>({kind:"EMPRESA",title:e.nombre,meta:[e.industria,e.estado,"Potencial "+e.potencial].filter(Boolean).join(" // "),open:()=>setModal({viewCompany:e.id})})),
+  ...(db.radar||[]).filter(r=>norm([r.nombre,r.sector,r.sistema,r.confianza,r.estado,r.notas,...(r.evidencias||[]).map(e=>[e.titulo,e.fuente].join(" "))].join(" ")).includes(gs)).slice(0,6).map(r=>({kind:"RADAR",title:r.nombre,meta:[r.sistema||"Sistema sin inferir",r.confianza,r.estado].join(" // "),open:()=>setModal({viewRadar:r.id})})),
   ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" // "),open:()=>setModal({viewContact:c.id})})),
   ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.proxima].filter(Boolean).join(" // "),open:()=>setModal({viewOpp:o.id})})),
   ...(db.triggers||[]).filter(t=>norm([t.titulo,t.tipo,t.descripcion,t.fuente,t.relevancia,emp(t.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(t=>({kind:"TRIGGER",title:t.titulo,meta:[emp(t.empresaId)?.nombre,t.tipo,t.relevancia,t.estado].filter(Boolean).join(" // "),open:()=>t.oportunidadId?setModal({viewOpp:t.oportunidadId}):t.empresaId?setModal({viewCompany:t.empresaId}):setTab("hoy")})),
@@ -412,6 +414,32 @@ function App(){
  }
 
 
+ async function saveRadar(ev){
+  ev.preventDefault();const f=new FormData(ev.currentTarget);const existing=modal.editRadar?(db.radar||[]).find(x=>x.id===modal.editRadar):null;
+  const evs=[...(existing?.evidencias||[])];
+  const titulo=(f.get("evidenciaTitulo")||"").trim(),link=(f.get("evidenciaLink")||"").trim(),fuente=(f.get("evidenciaFuente")||"").trim(),fecha=f.get("evidenciaFecha")||today;
+  if(titulo||link||fuente)evs.unshift({id:crypto.randomUUID(),fecha,titulo:titulo||"Evidencia",fuente:fuente||"Mercado Público",link});
+  const row={nombre:f.get("nombre").trim(),sector:f.get("sector").trim()||"Público",sistema_inferido:f.get("sistema").trim()||null,confianza:f.get("confianza")||"Media",estado:f.get("estado")||"Observando",notas:f.get("notas").trim()||null,evidencias:evs};
+  const q=modal.editRadar?sb.from("radar").update(row).eq("id",modal.editRadar):sb.from("radar").insert({...row,user_id:session.user.id});
+  const {error}=await q;if(await cloudError(error))return;setModal(false);await loadCloud();
+ }
+ async function deleteRadar(id){askConfirm("ELIMINAR RADAR","Se eliminará el registro y sus evidencias. La empresa activada, si existe, no se eliminará.",async()=>{setDialog(null);const {error}=await sb.from("radar").delete().eq("id",id);if(!(await cloudError(error))){setModal(false);await loadCloud()}})}
+ async function removeRadarEvidence(radarId,evidenceId){
+  const r=(db.radar||[]).find(x=>x.id===radarId);if(!r)return;const evidencias=(r.evidencias||[]).filter(e=>e.id!==evidenceId);
+  const {error}=await sb.from("radar").update({evidencias}).eq("id",radarId);if(!(await cloudError(error)))await loadCloud();
+ }
+ async function doActivateRadar(r,existing){
+  let companyId=existing?.id;
+  if(!companyId){const {data,error}=await sb.from("empresas").insert({user_id:session.user.id,nombre:r.nombre,industria:r.sector||"Sector Público",estado:"Prospecto",potencial:"Medio"}).select().single();if(await cloudError(error))return;companyId=data.id;}
+  const {error}=await sb.from("radar").update({estado:"Activado",empresa_id:companyId}).eq("id",r.id);if(await cloudError(error))return;setDialog(null);await loadCloud();setModal({viewCompany:companyId});
+ }
+ function activateRadar(id){
+  const r=(db.radar||[]).find(x=>x.id===id);if(!r)return;if(r.empresaId){setModal({viewCompany:r.empresaId});return}
+  const existing=db.empresas.find(e=>norm(e.nombre)===norm(r.nombre));
+  if(existing){askConfirm("EMPRESA YA EXISTE",`${existing.nombre} ya existe en EMPRESAS. ¿Quieres vincular este RADAR con esa empresa?`,()=>doActivateRadar(r,existing));return}
+  askConfirm("ACTIVAR COMO EMPRESA",`Se creará ${r.nombre} en EMPRESAS y este registro RADAR quedará vinculado como ACTIVADO.`,()=>doActivateRadar(r,null));
+ }
+
  async function saveTask(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const row={titulo:f.get("texto").trim(),fecha:f.get("fecha")||null,prioridad:f.get("prioridad"),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null,completada:false};
@@ -511,7 +539,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.35 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.36 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -522,7 +550,7 @@ function App(){
    <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, oportunidad, trigger o nota...  [ / ]" /></div>
    {globalSearch&&<div className="global-search-results">
     {globalSearch.trim().length<2?<div className="empty">ESCRIBE AL MENOS 2 CARACTERES.</div>:globalResults.length?<>
-     {["EMPRESA","CONTACTO","OPORTUNIDAD","TRIGGER","NOTA"].map(kind=>{
+     {["EMPRESA","RADAR","CONTACTO","OPORTUNIDAD","TRIGGER","NOTA"].map(kind=>{
       const rr=globalResults.filter(r=>r.kind===kind); if(!rr.length)return null;
       return <div key={kind}><div className="search-group-title">&gt; {kind}{kind==="EMPRESA"?"S":kind==="CONTACTO"?"S":kind==="OPORTUNIDAD"?"ES":kind==="TRIGGER"?"S":"S"}</div>{rr.map((r,i)=><button className="search-hit" key={kind+i} onClick={()=>openGlobalResult(r)}><b>{r.title}</b><span>{r.meta||"ABRIR →"}</span></button>)}</div>
      })}
@@ -580,10 +608,15 @@ function App(){
    <div className="small" style={{marginBottom:"8px"}}>{db.empresas.length} EMPRESAS // USA EL BUSCADOR UNIVERSAL DEL HEADER PARA ENCONTRAR UNA EMPRESA.</div>
    {db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
     </div>}
+  {tab==="radar"&&<div className="section"><div className="section-title"><span>&gt; RADAR</span><button className="btn primary" onClick={()=>setModal({newRadar:true})}>+ NUEVO RADAR</button></div>
+   <div className="small" style={{marginBottom:"8px"}}>{(db.radar||[]).length} ORGANIZACIONES // INTELIGENCIA PREVIA A LA ACTIVACIÓN COMERCIAL.</div>
+   {(db.radar||[]).slice().sort((a,b)=>(a.estado==="Activado")-(b.estado==="Activado")||a.nombre.localeCompare(b.nombre,"es")).map(r=><div className="card" key={r.id}><div className="row"><div><div className="title">{r.nombre}</div><div className="meta">{r.sector||"—"} // SISTEMA: {r.sistema||"SIN INFERIR"} // CONFIANZA: {r.confianza}</div></div><span className="tag">{r.estado}</span></div><div className="small">{(r.evidencias||[]).length} EVIDENCIAS{r.empresaId&&` // EMPRESA ACTIVADA`}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewRadar:r.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editRadar:r.id})}>EDITAR</button></div></div>)}
+   {!(db.radar||[]).length&&<div className="empty">SIN ORGANIZACIONES EN RADAR.</div>}
+  </div>}
   {tab==="data"&&<div className="section">
    <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
    <div className="card"><div className="meta">USUARIO: {session.user.email}</div>
-   {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}<br/>TRIGGERS: {cloudCounts.triggers||0}</div>}
+   {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}<br/>TRIGGERS: {cloudCounts.triggers||0} // RADAR: {cloudCounts.radar||0}</div>}
    <div className="meta" style={{marginTop:"8px"}}>SUPABASE ES LA ÚNICA FUENTE OFICIAL. LA COPIA LOCAL SOLO SE USA COMO CACHÉ Y NUNCA REEMPLAZA DATOS DE LA NUBE.</div>
    <div className="actions"><button className="btn dim" onClick={loadCloud}>SINCRONIZAR AHORA</button></div>
    </div>
@@ -595,7 +628,7 @@ function App(){
      EMPRESAS: {db.empresas.length}<br/>
      CONTACTOS: {db.contactos.length}<br/>
      OPORTUNIDADES: {db.oportunidades.length}<br/>
-     ACTIVIDADES: {db.actividades.length}<br/>TAREAS: {(db.tareas||[]).length}<br/>NOTAS: {(db.notas||[]).length}<br/>TRIGGERS: {(db.triggers||[]).length}<br/>
+     ACTIVIDADES: {db.actividades.length}<br/>TAREAS: {(db.tareas||[]).length}<br/>NOTAS: {(db.notas||[]).length}<br/>TRIGGERS: {(db.triggers||[]).length}<br/>RADAR: {(db.radar||[]).length}<br/>
      ÚLTIMO BACKUP: {lastBackup||"NUNCA"}
     </div>
    </div>
@@ -631,13 +664,14 @@ function App(){
   </div>}
   <button className="fab" aria-label="Acción rápida" onClick={()=>setModal({quick:true})}>+</button>
   <nav className="nav">
-   {[["hoy","F1","HOY"],["red","F2","RED"],["pipe","F3","PIPE"],["emp","F4","EMP"],["log","F5","LOG"],["data","F6","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
+   {[["hoy","F1","HOY"],["red","F2","RED"],["pipe","F3","PIPE"],["emp","F4","EMP"],["radar","F5","RADAR"],["log","F6","LOG"],["data","F7","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
   </nav>
   {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
     {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
        <button className="btn primary" onClick={()=>setModal({newTask:true})}>✓ TAREA</button>
        <button className="btn primary" onClick={()=>setModal({newNote:true})}>📝 NOTA</button>
+       <button className="btn primary" onClick={()=>setModal({newRadar:true})}>⌁ RADAR</button>
        <button className="btn" onClick={()=>setModal({})}>☎ ACTIVIDAD</button>
        <button className="btn" onClick={()=>setModal({newContact:true})}>👤 CONTACTO</button>
        <button className="btn" onClick={()=>setModal({newOpp:true})}>$ OPORTUNIDAD</button>
@@ -879,6 +913,22 @@ function App(){
        {ns.length?ns.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
        <hr/><div className="section-title"><span>&gt; ACTIVIDAD</span><span>{acts.length}</span></div>
        {acts.length?acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD.</div>}
+      </>
+    })():modal.viewRadar?(()=>{
+      const r=(db.radar||[]).find(x=>x.id===modal.viewRadar);if(!r)return <div className="empty">RADAR NO ENCONTRADO.</div>;
+      return <><div className="section-title"><span>&gt; FICHA RADAR</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <div className="title" style={{fontSize:"20px"}}>{r.nombre}</div><div className="meta">SECTOR: {r.sector||"—"} // ESTADO: {r.estado}<br/>SISTEMA INFERIDO: {r.sistema||"SIN INFERIR"} // CONFIANZA: {r.confianza}</div>
+       <div className="actions">{r.empresaId?<button className="btn primary" onClick={()=>setModal({viewCompany:r.empresaId})}>VER EMPRESA →</button>:<button className="btn primary" onClick={()=>activateRadar(r.id)}>ACTIVAR COMO EMPRESA →</button>}<button className="btn dim" onClick={()=>setModal({editRadar:r.id})}>EDITAR</button></div>
+       <hr/><div className="small">NOTAS / HIPÓTESIS</div><div>{r.notas||"—"}</div>
+       <hr/><div className="section-title"><span>&gt; EVIDENCIAS</span><span>{(r.evidencias||[]).length}</span></div>
+       {(r.evidencias||[]).length?(r.evidencias||[]).map(ev=><div className="card" key={ev.id}><div className="row"><div><div className="title">{ev.titulo||"Evidencia"}</div><div className="meta">{ev.fecha||"—"} // {ev.fuente||"Mercado Público"}</div></div></div><div className="actions">{ev.link&&<button className="btn dim" onClick={()=>window.open(ev.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn danger" onClick={()=>removeRadarEvidence(r.id,ev.id)}>BORRAR</button></div></div>):<div className="empty">SIN EVIDENCIAS.</div>}
+      </>
+    })():(modal.newRadar||modal.editRadar)?(()=>{
+      const r=modal.editRadar?(db.radar||[]).find(x=>x.id===modal.editRadar):{};
+      return <><div className="section-title"><span>&gt; {modal.editRadar?"EDITAR RADAR":"NUEVO RADAR"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+       <form onSubmit={saveRadar}><label>ORGANIZACIÓN *</label><input name="nombre" required defaultValue={r.nombre||""} placeholder="Ej: Municipalidad de ..."/><label>SECTOR</label><input name="sector" defaultValue={r.sector||"Público"}/><label>SISTEMA INFERIDO</label><input name="sistema" defaultValue={r.sistema||""} placeholder="Ej: SAP, Oracle EBS, PeopleSoft..."/><label>CONFIANZA</label><select name="confianza" defaultValue={r.confianza||"Media"}><option>Alta</option><option>Media</option><option>Baja</option></select><label>ESTADO</label><select name="estado" defaultValue={r.estado||"Observando"}><option>Observando</option><option>Activado</option><option>Descartado</option></select><label>NOTAS / HIPÓTESIS</label><textarea name="notas" defaultValue={r.notas||""} placeholder="Qué inferimos y por qué puede ser relevante..."></textarea>
+       <div className="card"><div className="title">+ AGREGAR EVIDENCIA (OPCIONAL)</div><label>FECHA</label><input type="date" name="evidenciaFecha" defaultValue={today}/><label>TÍTULO / HALLAZGO</label><input name="evidenciaTitulo" placeholder="Ej: Licitación soporte SAP"/><label>FUENTE</label><input name="evidenciaFuente" defaultValue="Mercado Público"/><label>LINK</label><input type="url" name="evidenciaLink" placeholder="https://..."/></div>
+       <div className="actions"><button className="btn primary">GUARDAR</button>{modal.editRadar&&<button className="btn danger" type="button" onClick={()=>deleteRadar(r.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div></form>
       </>
     })():(modal.newCompany||modal.editCompany)?(()=>{
       const e=modal.editCompany?db.empresas.find(x=>x.id===modal.editCompany):{};
