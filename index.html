@@ -296,10 +296,13 @@ function App(){
   ...(db.notas||[]).filter(n=>norm([n.texto,emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre,db.oportunidades.find(o=>o.id===n.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,5).map(n=>({kind:"NOTA",title:(n.texto||"").slice(0,80),meta:[emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre].filter(Boolean).join(" // "),open:()=>n.contactoId?setModal({viewContact:n.contactoId}):n.oportunidadId?setModal({viewOpp:n.oportunidadId}):n.empresaId?setModal({viewCompany:n.empresaId}):setTab("log")}))
  ];
  function openGlobalResult(r){setGlobalSearch("");r.open();}
- const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
- const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa));
+ const hasFollowupTask=o=>(db.tareas||[]).some(t=>!t.completada&&t.oportunidadId===o.id&&t.fecha===o.fecha&&norm(t.texto)===norm(o.proxima));
+ // HOY is action-first: when the opportunity next step already exists as a pending task,
+ // show only the task here. The opportunity remains available in PIPELINE and from the task itself.
+ const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o));
  const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
- const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const reconectar=[...db.contactos].filter(c=>c.ultimo && daysSince(c.ultimo)>=45 && (!c.proximo || c.proximo<=next7)).sort((a,b)=>{
    const score=x=>(x.potencial==="Alto"?100:x.potencial==="Medio"?50:0)+Math.min(daysSince(x.ultimo),365);
    return score(b)-score(a);
@@ -514,7 +517,7 @@ function App(){
  const TaskCard=({t})=>{
   const e=emp(t.empresaId), c=db.contactos.find(x=>x.id===t.contactoId), o=db.oportunidades.find(x=>x.id===t.oportunidadId);
   return <div className="card"><div className="row"><div><div className="title">{t.completada?"[OK] ":""}{t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // PRIORIDAD {t.prioridad}{e&&` // ${e.nombre}`}{c&&` // ${c.nombre}`}{o&&` // ${o.nombre}`}</div></div><span className="tag">{t.completada?"HECHA":"TAREA"}</span></div>
-   <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
+   <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button>{o&&<button className="btn dim" onClick={()=>setModal({viewOpp:o.id})}>ABRIR OPORTUNIDAD →</button>}<button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
  }
  async function saveOpportunity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
@@ -574,7 +577,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.43 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.44 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -600,15 +603,15 @@ function App(){
     <div className="stat"><b>{proximas.length+tareas7.length}</b><span className="small">7 DÍAS</span></div>
    </div>
    <div className="section">
-    <div className="section-title"><span>&gt; VENCIDAS</span><span>{vencidas.length}</span></div>
+    <div className="section-title"><span>&gt; VENCIDAS</span><span>{vencidas.length+tareasVencidas.length}</span></div>
     {tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{vencidas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasVencidas.length&&!vencidas.length&&<div className="empty">SIN ACCIONES VENCIDAS.</div>}
    </div>
    <div className="section">
-    <div className="section-title"><span>&gt; HOY // {today}</span><span>{hoy.length}</span></div>
+    <div className="section-title"><span>&gt; HOY // {today}</span><span>{hoy.length+tareasHoy.length}</span></div>
     {tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}
    </div>
    <div className="section">
-    <div className="section-title"><span>&gt; PRÓXIMOS 7 DÍAS</span><span>{proximas.length}</span></div>
+    <div className="section-title"><span>&gt; PRÓXIMOS 7 DÍAS</span><span>{proximas.length+tareas7.length}</span></div>
     {tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}
    </div>
    <div className="section">
