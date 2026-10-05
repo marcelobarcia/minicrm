@@ -566,7 +566,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.40 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.41 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -991,11 +991,20 @@ function App(){
       const autoCompanyId=a?.empresaId||modal.company||contextContact?.empresaId||contextOpp?.empresaId||autoOpp?.empresaId||"";
       const linkedOpp=a?.oportunidadId?db.oportunidades.find(o=>o.id===a.oportunidadId):null;
       const orderedOpps=contextContactId?[...contactOpps,...db.oportunidades.filter(o=>!(o.contactos||[]).includes(contextContactId))]:db.oportunidades;
+      // When the activity is opened from an opportunity (or editing one already linked),
+      // only participants explicitly associated with that opportunity are valid choices.
+      const activityOppContext=a?.oportunidadId?db.oportunidades.find(o=>o.id===a.oportunidadId):contextOpp;
+      const activityContacts=activityOppContext
+       ?(activityOppContext.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean)
+       :modal.company
+        ?db.contactos.filter(c=>c.empresaId===modal.company)
+        :db.contactos;
       return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveActivity}>
        <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Email</option><option>Nota</option></select>
        <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={autoCompanyId}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
-       <label>CONTACTO</label><select name="contactoId" defaultValue={contextContactId}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       <label>CONTACTO</label><select name="contactoId" defaultValue={contextContactId}><option value="">-- SIN CONTACTO --</option>{activityContacts.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       {activityOppContext&&<div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>{activityContacts.length?`${activityContacts.length} CONTACTO${activityContacts.length===1?"":"S"} ASOCIADO${activityContacts.length===1?"":"S"} A ESTA OPORTUNIDAD`:"ESTA OPORTUNIDAD NO TIENE CONTACTOS ASOCIADOS"}</div>}
        <label>OPORTUNIDAD</label><select name="oportunidadId" defaultValue={autoOppId}><option value="">-- SIN OPORTUNIDAD --</option>{orderedOpps.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
        <label>FECHA</label><input name="fecha" type="date" defaultValue={a?.fecha||today} required/>
        <label>RESULTADO / NOTA</label><textarea name="nota" defaultValue={a?.nota||""} placeholder="> ¿Qué pasó?"></textarea>
