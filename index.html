@@ -359,7 +359,9 @@ function App(){
  async function saveActivity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const contactoId=f.get("contactoId")||null,oportunidadId=f.get("oportunidadId")||null;
-  const empresaId=contactoId?db.contactos.find(c=>c.id===contactoId)?.empresaId:(oportunidadId?db.oportunidades.find(o=>o.id===oportunidadId)?.empresaId:(f.get("activityEmpresaId")||null));
+  // La selección del usuario manda. El formulario ya precarga empresa/oportunidad según el contexto,
+  // pero ambos campos siguen siendo editables para registrar excepciones sin fricción.
+  const empresaId=f.get("activityEmpresaId")||null;
   const editing=modal.editActivity?db.actividades.find(a=>a.id===modal.editActivity):null;
   const row={empresa_id:empresaId||null,contacto_id:contactoId,oportunidad_id:oportunidadId,tipo:f.get("tipo"),fecha:f.get("fecha"),nota:f.get("nota")||null};
   let q=editing?sb.from("actividades").update(row).eq("id",editing.id):sb.from("actividades").insert({...row,user_id:session.user.id});
@@ -546,7 +548,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.37 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.38 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -958,13 +960,22 @@ function App(){
     })():<>
     {(()=>{
       const a=modal.editActivity?db.actividades.find(x=>x.id===modal.editActivity):null;
+      const contextContactId=a?.contactoId||modal.contact||"";
+      const contextContact=contextContactId?db.contactos.find(c=>c.id===contextContactId):null;
+      const contextOpp=modal.opp?db.oportunidades.find(o=>o.id===modal.opp):null;
+      const contactOpps=contextContactId?db.oportunidades.filter(o=>(o.contactos||[]).includes(contextContactId)):[];
+      const activeContactOpps=contactOpps.filter(o=>!["Ganada","Perdida"].includes(o.etapa));
+      const autoOppId=a?.oportunidadId||modal.opp||(activeContactOpps.length===1?activeContactOpps[0].id:"");
+      const autoOpp=autoOppId?db.oportunidades.find(o=>o.id===autoOppId):null;
+      const autoCompanyId=a?.empresaId||modal.company||contextContact?.empresaId||contextOpp?.empresaId||autoOpp?.empresaId||"";
       const linkedOpp=a?.oportunidadId?db.oportunidades.find(o=>o.id===a.oportunidadId):null;
+      const orderedOpps=contextContactId?[...contactOpps,...db.oportunidades.filter(o=>!(o.contactos||[]).includes(contextContactId))]:db.oportunidades;
       return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveActivity}>
        <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Email</option><option>Nota</option></select>
-       <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={a?.empresaId||modal.company||""}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
-       <label>CONTACTO</label><select name="contactoId" defaultValue={a?.contactoId||modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
-       <label>OPORTUNIDAD</label><select name="oportunidadId" defaultValue={a?.oportunidadId||modal.opp||""}><option value="">-- SIN OPORTUNIDAD --</option>{db.oportunidades.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
+       <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={autoCompanyId}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>CONTACTO</label><select name="contactoId" defaultValue={contextContactId}><option value="">-- SIN CONTACTO --</option>{db.contactos.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
+       <label>OPORTUNIDAD</label><select name="oportunidadId" defaultValue={autoOppId}><option value="">-- SIN OPORTUNIDAD --</option>{orderedOpps.map(o=><option key={o.id} value={o.id}>{emp(o.empresaId)?.nombre} // {o.nombre}</option>)}</select>
        <label>FECHA</label><input name="fecha" type="date" defaultValue={a?.fecha||today} required/>
        <label>RESULTADO / NOTA</label><textarea name="nota" defaultValue={a?.nota||""} placeholder="> ¿Qué pasó?"></textarea>
        <label>PRÓXIMA ACCIÓN</label><input name="accion" defaultValue={a?linkedOpp?.proxima||"":""} placeholder="Ej: Seguimiento propuesta"/>
