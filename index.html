@@ -539,6 +539,24 @@ function App(){
  </div></div>;
  if(session&&!cloudLoaded) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">SINCRONIZANDO DATOS DESDE SUPABASE...</div></div></div>;
  const OrgViewport=({children})=>{const ref=React.useRef(null);React.useEffect(()=>{const el=ref.current;if(el)requestAnimationFrame(()=>{el.scrollLeft=Math.max(0,(el.scrollWidth-el.clientWidth)/2)})},[]);const move=d=>{const el=ref.current;if(el)el.scrollBy({left:d*Math.max(320,el.clientWidth*.72),behavior:"smooth"})};return <div className="org-viewport"><div className="org-nav"><button className="btn dim" onClick={()=>move(-1)}>◀</button><div className="org-hint">DESPLAZAR MAPA</div><button className="btn dim" onClick={()=>move(1)}>▶</button></div><div className="org-scroll" ref={ref}>{children}</div></div>};
+ const OpportunityContactPicker=({o,selected})=>{
+  const [companyId,setCompanyId]=React.useState(o.empresaId||"");
+  const [showExternal,setShowExternal]=React.useState(false);
+  const companyContacts=db.contactos.filter(c=>companyId&&c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalSelected=db.contactos.filter(c=>selected.includes(c.id)&&c.empresaId!==companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalAvailable=db.contactos.filter(c=>c.empresaId!==companyId&&!selected.includes(c.id)).sort((a,b)=>((emp(a.empresaId)?.nombre||"").localeCompare(emp(b.empresaId)?.nombre||"","es")||a.nombre.localeCompare(b.nombre,"es")));
+  return <>
+   <label>EMPRESA *</label><select name="empresaId" required value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+   <label>CONTACTOS ASOCIADOS</label>
+   <div className="card">
+    <div className="small" style={{marginBottom:"7px"}}>{companyId?`CONTACTOS DE ${emp(companyId)?.nombre||"LA EMPRESA"}`:"SELECCIONA UNA EMPRESA"}</div>
+    {companyContacts.length?companyContacts.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre}</label>):<span className="small">{companyId?"SIN CONTACTOS DE ESTA EMPRESA.":"—"}</span>}
+    {externalSelected.length>0&&<><hr/><div className="small" style={{marginBottom:"7px"}}>CONTACTOS EXTERNOS ASOCIADOS</div>{externalSelected.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={true}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>)}</>}
+    <div className="actions" style={{marginTop:"9px"}}><button className="btn dim" type="button" onClick={()=>setShowExternal(v=>!v)}>{showExternal?"CERRAR CONTACTOS EXTERNOS":"+ AGREGAR CONTACTO EXTERNO"}</button></div>
+    {showExternal&&<div style={{marginTop:"8px",borderTop:"1px solid var(--line)",paddingTop:"8px"}}><div className="small" style={{marginBottom:"7px"}}>OTRAS EMPRESAS</div>{externalAvailable.length?externalAvailable.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>):<span className="small">SIN OTROS CONTACTOS DISPONIBLES.</span>}</div>}
+   </div>
+  </>;
+ };
  const Opportunity=({o})=><div className="card">
    <div className="row"><div><div className="title">{emp(o.empresaId)?.nombre}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div>
    <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
@@ -548,7 +566,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.38 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.39 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -791,17 +809,14 @@ function App(){
     })():(modal.newOpp||modal.editOpp)?(()=>{
       const o=modal.editOpp?db.oportunidades.find(x=>x.id===modal.editOpp):{};
       const selected=o.contactos||[];
-      const companyContacts=db.contactos.filter(c=>!o.empresaId||c.empresaId===o.empresaId);
       return <><div className="section-title"><span>&gt; {modal.editOpp?"EDITAR OPORTUNIDAD":"NUEVA OPORTUNIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <form onSubmit={saveOpportunity}>
-        <label>EMPRESA *</label><select name="empresaId" required defaultValue={o.empresaId||""}><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+        <OpportunityContactPicker o={o} selected={selected}/>
         <label>OPORTUNIDAD *</label><input name="nombre" required defaultValue={o.nombre||""} placeholder="Ej: Oracle ERP Cloud"/>
         <label>ETAPA</label><select name="etapa" defaultValue={o.etapa||"Lead"}>{["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(x=><option key={x}>{x}</option>)}</select>
         <label>VALOR ESTIMADO</label><input name="valor" type="number" min="0" step="1" defaultValue={o.valor||0}/>
         <label>PROBABILIDAD %</label><input name="probabilidad" type="number" min="0" max="100" defaultValue={o.probabilidad||20}/>
         <label>CIERRE ESTIMADO</label><input name="cierre" type="date" defaultValue={o.cierre||""}/>
-        <label>CONTACTOS ASOCIADOS</label>
-        <div className="card">{db.contactos.length?db.contactos.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre} // {emp(c.empresaId)?.nombre}</label>):<span className="small">SIN CONTACTOS.</span>}</div>
         <label>PRÓXIMA ACCIÓN</label><input name="proxima" defaultValue={o.proxima||""} placeholder="Ej: Reunión de revisión"/>
         <label>FECHA PRÓXIMA ACCIÓN</label><input name="fecha" type="date" defaultValue={o.fecha||""}/>
         <label>NOTA / CONTEXTO</label><textarea name="nota" defaultValue={o.nota||""} placeholder="Contexto comercial, competencia, decisión..."></textarea>
