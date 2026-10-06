@@ -538,10 +538,52 @@ function App(){
     await loadCloud();
   });
  }
+ function openTaskCalendar(t){
+  if(!t.fecha){showInfo("TAREA SIN FECHA","Asigna una fecha a la tarea antes de crear el recordatorio en Calendar.");return}
+  setDialog({
+    title:"CREAR RECORDATORIO",
+    body:<CalendarReminderForm task={t}/>,
+    custom:true
+  });
+ }
+ function CalendarReminderForm({task:t}){
+  const e=emp(t.empresaId), c=db.contactos.find(x=>x.id===t.contactoId), o=db.oportunidades.find(x=>x.id===t.oportunidadId);
+  function submit(ev){
+    ev.preventDefault();
+    const f=new FormData(ev.currentTarget), time=f.get("hora")||"09:00", duration=Math.max(5,Number(f.get("duracion")||15));
+    const [y,m,d]=t.fecha.split("-").map(Number), [hh,mm]=time.split(":").map(Number);
+    if(!y||!m||!d||Number.isNaN(hh)||Number.isNaN(mm)){showInfo("FECHA / HORA INVÁLIDA","Revisa la fecha y hora del recordatorio.");return}
+    const pad=n=>String(n).padStart(2,"0");
+    const stamp=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+    const start=new Date(y,m-1,d,hh,mm,0), end=new Date(start.getTime()+duration*60000);
+    const title=`${t.texto}${e?` — ${e.nombre}`:""}`;
+    const details=[
+      c?`Contacto: ${c.nombre}`:null,
+      e?`Empresa: ${e.nombre}`:null,
+      o?`Oportunidad: ${o.nombre}`:null,
+      "",
+      t.texto,
+      "",
+      "Creado desde Ninja Sales Terminal"
+    ].filter(x=>x!==null).join("\n");
+    const params=new URLSearchParams({action:"TEMPLATE",text:title,dates:`${stamp(start)}/${stamp(end)}`,details});
+    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`,"_blank","noopener,noreferrer");
+    setDialog(null);
+  }
+  return <form onSubmit={submit}>
+    <div className="meta" style={{marginBottom:10}}>{t.fecha} // {t.texto}</div>
+    <label>HORA</label><input name="hora" type="time" defaultValue="09:00" required/>
+    <label>DURACIÓN</label><select name="duracion" defaultValue="15"><option value="15">15 MIN</option><option value="30">30 MIN</option><option value="60">60 MIN</option></select>
+    <div className="actions" style={{marginTop:14}}>
+      <button type="button" className="btn dim" onClick={()=>setDialog(null)}>CANCELAR</button>
+      <button type="submit" className="btn primary">ABRIR CALENDAR →</button>
+    </div>
+  </form>
+ }
  const TaskCard=({t})=>{
   const e=emp(t.empresaId), c=db.contactos.find(x=>x.id===t.contactoId), o=db.oportunidades.find(x=>x.id===t.oportunidadId);
   return <div className="card"><div className="row"><div><div className="title">{t.completada?"[OK] ":""}{t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // PRIORIDAD {t.prioridad}{e&&` // ${e.nombre}`}{c&&` // ${c.nombre}`}{o&&` // ${o.nombre}`}</div></div><span className="tag">{t.completada?"HECHA":"TAREA"}</span></div>
-   <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button>{o&&<button className="btn dim" onClick={()=>setModal({viewOpp:o.id})}>ABRIR OPORTUNIDAD →</button>}<button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
+   <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"✓ HECHO"}</button>{!t.completada&&<button className="btn dim" onClick={()=>openTaskCalendar(t)}>📅 CALENDAR</button>}{o&&<button className="btn dim" onClick={()=>setModal({viewOpp:o.id})}>ABRIR OPORTUNIDAD →</button>}<button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
  }
  async function saveOpportunity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
@@ -630,7 +672,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.48 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.49 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
