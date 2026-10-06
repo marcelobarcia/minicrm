@@ -206,6 +206,9 @@ function App(){
  const [migrating,setMigrating]=useState(false);
  const [companySearch,setCompanySearch]=useState("");
  const [globalSearch,setGlobalSearch]=useState("");
+ const [logType,setLogType]=useState("TODAS");
+ const [logRange,setLogRange]=useState("30");
+ const [logLimit,setLogLimit]=useState(30);
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
@@ -668,7 +671,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.51 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.52 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -786,8 +789,36 @@ function App(){
      {orphanNotes.map(n=><div className="card" key={n.id}><div className="row"><span className="title">NOTA</span><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>)}
      {!orphanNotes.length&&<div className="empty">SIN NOTAS PENDIENTES DE CLASIFICAR.</div>}</>
    })()}
-   <hr/><div className="section-title"><span>&gt; ACTIVIDADES</span><span>{db.actividades.length}</span></div>
-   {db.actividades.map(a=><div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{emp(a.empresaId)?.nombre||"Sin empresa"}</div><div className="meta">{a.nota}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>)}
+   <hr/>{(()=>{
+     const types=["TODAS",...Array.from(new Set((db.actividades||[]).map(a=>(a.tipo||"OTRO").toUpperCase()))).sort()];
+     const cutoff=logRange==="TODO"?null:(()=>{
+       const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-Number(logRange)+1);
+       const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+       return `${y}-${m}-${day}`;
+     })();
+     const filtered=(db.actividades||[])
+       .filter(a=>logType==="TODAS"||(a.tipo||"OTRO").toUpperCase()===logType)
+       .filter(a=>!cutoff||(a.fecha||"")>=cutoff)
+       .slice()
+       .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")||(b.createdAt||"").localeCompare(a.createdAt||""));
+     const visible=filtered.slice(0,logLimit);
+     return <>
+      <div className="section-title"><span>&gt; ACTIVIDADES RECIENTES</span><span>{visible.length} / {filtered.length}</span></div>
+      <div className="card">
+       <div className="small" style={{marginBottom:"8px"}}>TIPO</div>
+       <div className="actions" style={{marginBottom:"10px"}}>
+        {types.map(t=><button type="button" key={t} className={`btn ${logType===t?"primary":"dim"}`} onClick={()=>{setLogType(t);setLogLimit(30)}}>{t}</button>)}
+       </div>
+       <div className="small" style={{marginBottom:"8px"}}>PERÍODO</div>
+       <div className="actions">
+        {[["30","30 DÍAS"],["90","90 DÍAS"],["TODO","TODO"]].map(([v,label])=><button type="button" key={v} className={`btn ${logRange===v?"primary":"dim"}`} onClick={()=>{setLogRange(v);setLogLimit(30)}}>{label}</button>)}
+       </div>
+      </div>
+      {visible.map(a=><div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{emp(a.empresaId)?.nombre||"Sin empresa"}</div><div className="meta">{a.nota}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>)}
+      {!visible.length&&<div className="empty">SIN ACTIVIDADES PARA ESTE FILTRO.</div>}
+      {filtered.length>visible.length&&<div className="actions" style={{justifyContent:"center",marginTop:"12px"}}><button className="btn dim" onClick={()=>setLogLimit(n=>n+30)}>CARGAR 30 ANTERIORES ↓</button></div>}
+     </>;
+   })()}
    <hr/><div className="section-title"><span>&gt; TAREAS COMPLETADAS</span><span>{(db.tareas||[]).filter(t=>t.completada).length}</span></div>
    {(db.tareas||[]).filter(t=>t.completada).slice().reverse().map(t=><div className="card" key={t.id}><div className="title">✓ {t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // {emp(t.empresaId)?.nombre||""}</div><div className="actions"><button className="btn dim" onClick={()=>toggleTask(t.id)}>REABRIR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>)}
   </div>}
