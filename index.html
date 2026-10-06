@@ -672,7 +672,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.49 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.50 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1131,11 +1131,13 @@ function App(){
   {dialog&&<div className="overlay" style={{zIndex:120}} onClick={()=>setDialog(null)}>
     <div className="modal" style={{maxWidth:"520px",alignSelf:"center"}} onClick={e=>e.stopPropagation()}>
       <div className="section-title"><span>&gt; {dialog.title}</span><button className="btn dim" onClick={()=>setDialog(null)}>ESC</button></div>
-      <div className="card"><div style={{lineHeight:"1.55"}}>{dialog.message}</div></div>
-      <div className="actions">
-       {dialog.type==="confirm"&&<button className="btn danger" onClick={dialog.onConfirm}>CONFIRMAR</button>}
-       <button className="btn primary" onClick={()=>setDialog(null)}>{dialog.type==="confirm"?"CANCELAR":"ACEPTAR"}</button>
-      </div>
+      {dialog.custom ? dialog.body : <>
+       <div className="card"><div style={{lineHeight:"1.55"}}>{dialog.message}</div></div>
+       <div className="actions">
+        {dialog.type==="confirm"&&<button className="btn danger" onClick={dialog.onConfirm}>CONFIRMAR</button>}
+        <button className="btn primary" onClick={()=>setDialog(null)}>{dialog.type==="confirm"?"CANCELAR":"ACEPTAR"}</button>
+       </div>
+      </>}
     </div>
   </div>}
  </div>
