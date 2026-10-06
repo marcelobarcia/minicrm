@@ -552,6 +552,24 @@ function App(){
  </div></div>;
  if(session&&!cloudLoaded) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">SINCRONIZANDO DATOS DESDE SUPABASE...</div></div></div>;
  const OrgViewport=({children})=>{const ref=React.useRef(null);React.useEffect(()=>{const el=ref.current;if(el)requestAnimationFrame(()=>{el.scrollLeft=Math.max(0,(el.scrollWidth-el.clientWidth)/2)})},[]);const move=d=>{const el=ref.current;if(el)el.scrollBy({left:d*Math.max(320,el.clientWidth*.72),behavior:"smooth"})};return <div className="org-viewport"><div className="org-nav"><button className="btn dim" onClick={()=>move(-1)}>◀</button><div className="org-hint">DESPLAZAR MAPA</div><button className="btn dim" onClick={()=>move(1)}>▶</button></div><div className="org-scroll" ref={ref}>{children}</div></div>};
+ const TriggerRelationFields=({initialCompany,initialContact})=>{
+  const [companyId,setCompanyId]=React.useState(initialCompany||"");
+  const [contactId,setContactId]=React.useState(initialContact||"");
+  const orderedContacts=db.contactos.slice().sort((a,b)=>{
+   const ap=a.empresaId===companyId?0:1,bp=b.empresaId===companyId?0:1;
+   return ap-bp||a.nombre.localeCompare(b.nombre,"es");
+  });
+  const chooseContact=id=>{
+   setContactId(id);
+   const c=id?db.contactos.find(x=>x.id===id):null;
+   if(c?.empresaId)setCompanyId(c.empresaId);
+  };
+  return <>
+   <label>EMPRESA *</label><select name="empresaId" value={companyId} onChange={e=>setCompanyId(e.target.value)} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+   <label>CONTACTO (OPCIONAL)</label><select name="contactoId" value={contactId} onChange={e=>chooseContact(e.target.value)}><option value="">-- SIN CONTACTO --</option>{orderedContacts.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</option>)}</select>
+   <div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>AL SELECCIONAR UN CONTACTO, SU EMPRESA SE COMPLETA AUTOMÁTICAMENTE. PUEDES CAMBIARLA DESPUÉS SI LO NECESITAS.</div>
+  </>;
+ };
  const OpportunityContactPicker=({o,selected})=>{
   const [companyId,setCompanyId]=React.useState(o.empresaId||"");
   const [showExternal,setShowExternal]=React.useState(false);
@@ -579,7 +597,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.45 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.46 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -731,9 +749,11 @@ function App(){
       return <><div className="section-title"><span>&gt; {modal.editTrigger?"EDITAR TRIGGER / SEÑAL":"NUEVO TRIGGER / SEÑAL"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveTrigger}>
        <label>TÍTULO *</label><input name="titulo" required autoFocus defaultValue={t.titulo||""} placeholder="Ej: Nueva licitación publicada"/>
-       <label>EMPRESA *</label><select name="empresaId" defaultValue={t.empresaId||modal.company||(modal.contact?db.contactos.find(c=>c.id===modal.contact)?.empresaId:"")||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
-       <label>CONTACTO (OPCIONAL)</label><select name="contactoId" defaultValue={t.contactoId||modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</option>)}</select>
-       <div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>SI SELECCIONAS UN CONTACTO, EL TRIGGER QUEDA ASOCIADO TAMBIÉN A SU EMPRESA.</div>
+       {(()=>{
+         const initialCompany=t.empresaId||modal.company||(modal.contact?db.contactos.find(c=>c.id===modal.contact)?.empresaId:"")||"";
+         const initialContact=t.contactoId||modal.contact||"";
+         return <TriggerRelationFields initialCompany={initialCompany} initialContact={initialContact}/>;
+       })()}
        <label>FECHA</label><input type="date" name="fecha" defaultValue={t.fecha||today}/>
        <label>TIPO</label><select name="tipo" defaultValue={t.tipo||"Noticia"}><option>Noticia</option><option>Licitación</option><option>Cambio ejecutivo</option><option>Inversión</option><option>Proyecto</option><option>Organizacional</option><option>Regulatorio</option><option>Competencia</option><option>Otro</option></select>
        <label>RELEVANCIA</label><select name="relevancia" defaultValue={t.relevancia||"Media"}><option>Alta</option><option>Media</option><option>Baja</option></select>
