@@ -372,15 +372,37 @@ function App(){
   }
   const shouldUpdate=!editing||f.get("updateNext")==="yes";
   const nextTitle=(f.get("accion")||"").trim(), nextDate=f.get("proximo")||null;
+  const oppBefore=oportunidadId?db.oportunidades.find(o=>o.id===oportunidadId):null;
+
+  // If there is an opportunity, keep its next action synchronized.
   if(shouldUpdate&&oportunidadId&&nextTitle){
-    ({error}=await sb.from("oportunidades").update({proxima_accion:nextTitle,fecha_proxima_accion:nextDate}).eq("id",oportunidadId));if(await cloudError(error))return;
-    // One pending follow-up task per opportunity. Reuse/update it instead of creating duplicates.
-    // Manual tasks are preserved; a pending task matching the previous/next opportunity action is treated as the follow-up.
-    const oppBefore=db.oportunidades.find(o=>o.id===oportunidadId);
-    const previousTitle=(oppBefore?.proxima||"").trim();
-    const candidates=(db.tareas||[]).filter(t=>!t.completada&&t.oportunidadId===oportunidadId);
-    const followTask=candidates.find(t=>previousTitle&&t.texto===previousTitle)||candidates.find(t=>t.texto===nextTitle);
-    const taskRow={titulo:nextTitle,fecha:nextDate,prioridad:"Normal",empresa_id:empresaId||oppBefore?.empresaId||null,contacto_id:contactoId||null,oportunidad_id:oportunidadId,completada:false};
+    ({error}=await sb.from("oportunidades").update({proxima_accion:nextTitle,fecha_proxima_accion:nextDate}).eq("id",oportunidadId));
+    if(await cloudError(error))return;
+  }
+
+  // Every new activity with NEXT ACTION + DATE creates a follow-up task,
+  // even when it belongs only to a contact/company and has no opportunity yet.
+  // When editing, only touch follow-up automation if the user explicitly asked
+  // to update the next action (same rule used for historical corrections).
+  if(shouldUpdate&&nextTitle&&nextDate){
+    let followTask=null;
+    if(oportunidadId){
+      const previousTitle=(oppBefore?.proxima||"").trim();
+      const candidates=(db.tareas||[]).filter(t=>!t.completada&&t.oportunidadId===oportunidadId);
+      followTask=candidates.find(t=>previousTitle&&t.texto===previousTitle)||candidates.find(t=>t.texto===nextTitle);
+    }else if(contactoId){
+      // For contact-only follow-ups, avoid duplicate pending tasks with the same title.
+      followTask=(db.tareas||[]).find(t=>!t.completada&&!t.oportunidadId&&t.contactoId===contactoId&&t.texto===nextTitle);
+    }
+    const taskRow={
+      titulo:nextTitle,
+      fecha:nextDate,
+      prioridad:"Normal",
+      empresa_id:empresaId||oppBefore?.empresaId||null,
+      contacto_id:contactoId||null,
+      oportunidad_id:oportunidadId||null,
+      completada:false
+    };
     if(followTask)({error}=await sb.from("tareas").update(taskRow).eq("id",followTask.id));
     else ({error}=await sb.from("tareas").insert({...taskRow,user_id:session.user.id}));
     if(await cloudError(error))return;
@@ -608,7 +630,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.47 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.48 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
