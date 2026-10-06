@@ -230,7 +230,7 @@ function App(){
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
   const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
-  const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",link:x.link||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
+  const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",link:x.link||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
   const radar=(rows.radar||[]).map(x=>({id:x.id,nombre:x.nombre||"",sector:x.sector||"Público",sistema:x.sistema_inferido||"",confianza:x.confianza||"Media",estado:x.estado||"Observando",notas:x.notas||"",empresaId:x.empresa_id||"",evidencias:Array.isArray(x.evidencias)?x.evidencias:[],createdAt:x.created_at}));
   return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers,radar};
  }
@@ -485,7 +485,9 @@ function App(){
  async function saveTrigger(ev){
   ev.preventDefault();const f=new FormData(ev.currentTarget);
   const editing=modal&&modal.editTrigger;
-  const row={empresa_id:f.get("empresaId")||null,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null};
+  const contactoId=f.get("contactoId")||null;
+  const triggerContact=contactoId?db.contactos.find(c=>c.id===contactoId):null;
+  const row={empresa_id:triggerContact?.empresaId||f.get("empresaId")||null,contacto_id:contactoId,oportunidad_id:f.get("oportunidadId")||null,fecha:f.get("fecha")||today,tipo:f.get("tipo")||"Otro",titulo:f.get("titulo").trim(),descripcion:f.get("descripcion").trim()||null,relevancia:f.get("relevancia")||"Media",fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null};
   let error;
   if(editing){({error}=await sb.from("triggers").update(row).eq("id",editing));}
   else{({error}=await sb.from("triggers").insert({...row,estado:"Nuevo",user_id:session.user.id}));}
@@ -577,7 +579,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.44 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.45 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -617,9 +619,9 @@ function App(){
    <div className="section">
     <div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
     {(db.triggers||[]).filter(t=>t.estado==="Nuevo").length?(db.triggers||[]).filter(t=>t.estado==="Nuevo").sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}>
-      <div className="row"><div><div className="title">{t.titulo}</div><div>{emp(t.empresaId)?.nombre||"SIN EMPRESA"} // {t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
+      <div className="row"><div><div className="title">{t.titulo}</div><div>{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?`${db.contactos.find(c=>c.id===t.contactoId).nombre} // `:""}{emp(t.empresaId)?.nombre||"SIN EMPRESA"} // {t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
       <div className="meta">{t.fecha} // {t.descripcion||"SIN DESCRIPCIÓN"}{t.fuente&&` // FUENTE: ${t.fuente}`}</div>
-      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
+      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.contactoId&&<button className="btn dim" onClick={()=>setModal({viewContact:t.contactoId})}>VER CONTACTO →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:t.contactoId||"",opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
     </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}
    </div>
    <div className="section">
@@ -729,7 +731,9 @@ function App(){
       return <><div className="section-title"><span>&gt; {modal.editTrigger?"EDITAR TRIGGER / SEÑAL":"NUEVO TRIGGER / SEÑAL"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveTrigger}>
        <label>TÍTULO *</label><input name="titulo" required autoFocus defaultValue={t.titulo||""} placeholder="Ej: Nueva licitación publicada"/>
-       <label>EMPRESA *</label><select name="empresaId" defaultValue={t.empresaId||modal.company||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>EMPRESA *</label><select name="empresaId" defaultValue={t.empresaId||modal.company||(modal.contact?db.contactos.find(c=>c.id===modal.contact)?.empresaId:"")||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+       <label>CONTACTO (OPCIONAL)</label><select name="contactoId" defaultValue={t.contactoId||modal.contact||""}><option value="">-- SIN CONTACTO --</option>{db.contactos.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</option>)}</select>
+       <div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>SI SELECCIONAS UN CONTACTO, EL TRIGGER QUEDA ASOCIADO TAMBIÉN A SU EMPRESA.</div>
        <label>FECHA</label><input type="date" name="fecha" defaultValue={t.fecha||today}/>
        <label>TIPO</label><select name="tipo" defaultValue={t.tipo||"Noticia"}><option>Noticia</option><option>Licitación</option><option>Cambio ejecutivo</option><option>Inversión</option><option>Proyecto</option><option>Organizacional</option><option>Regulatorio</option><option>Competencia</option><option>Otro</option></select>
        <label>RELEVANCIA</label><select name="relevancia" defaultValue={t.relevancia||"Media"}><option>Alta</option><option>Media</option><option>Baja</option></select>
@@ -775,6 +779,7 @@ function App(){
       const c=db.contactos.find(x=>x.id===modal.viewContact); const acts=db.actividades.filter(a=>a.contactoId===c.id).slice(0,8);
       const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
+      const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
       const contactOpps=(db.oportunidades||[]).filter(o=>(o.contactos||[]).includes(c.id)).sort((a,b)=>{
        const closed=x=>["Ganada","Perdida"].includes(x.etapa)?1:0;
        return closed(a)-closed(b)||((a.fecha||"9999").localeCompare(b.fecha||"9999"))||a.nombre.localeCompare(b.nombre,"es");
@@ -812,8 +817,10 @@ function App(){
        <div className="small">NOTA</div><div>{c.nota||"—"}</div><hr/>
        <div className="small">ÚLTIMO CONTACTO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div>
        <div className="actions">
-        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
+        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
        </div>
+       <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{contactTriggers.length}</span></div>
+       {contactTriggers.length?contactTriggers.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:c.id,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button></div></div>):<div className="empty">SIN TRIGGERS ASOCIADOS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{contactOpps.length}</span></div>
        {contactOpps.length?contactOpps.map(o=><div className="card" key={o.id}><div className="row"><div><div className="title">{emp(o.empresaId)?.nombre||"SIN EMPRESA"}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div><div className="meta">PRÓX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR →</button></div></div>):<div className="empty">SIN OPORTUNIDADES ASOCIADAS.</div>}
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
@@ -894,7 +901,7 @@ function App(){
          </div>;
        })()}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn dim" onClick={()=>setModal({newTrigger:true,company:o.empresaId,opp:o.id})}>+ TRIGGER</button></div>
-       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
@@ -947,7 +954,7 @@ function App(){
          return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{(db.triggers||[]).filter(t=>t.empresaId===e.id).length}</span></div>
-       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.empresaId===e.id)&&<div className="empty">SIN TRIGGERS REGISTRADOS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
