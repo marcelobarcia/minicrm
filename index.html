@@ -136,6 +136,14 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
  .header-title{font-size:15px}
  .header-status{grid-column:2;grid-row:1}
 }
+
+.pulse-stat{font:inherit;color:inherit;text-align:center;cursor:pointer;background:transparent}
+.pulse-stat:hover{border-color:var(--bright)}
+.pulse-week{width:100%;display:grid;grid-template-columns:72px 1fr 32px;gap:10px;align-items:center;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;padding:10px 2px;text-align:left;cursor:pointer}
+.pulse-week:last-child{border-bottom:0}.pulse-bar{height:8px;border:1px solid var(--line);display:block}.pulse-bar i{display:block;height:100%;background:var(--amber)}
+.pulse-insight{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;text-align:left;padding:10px 2px;cursor:pointer;line-height:1.45}.pulse-insight:last-child{border-bottom:0}
+.pulse-detail{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+@media(max-width:520px){.pulse-week{grid-template-columns:64px 1fr 26px;gap:7px}.pulse-stat{min-width:0}}
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -209,6 +217,7 @@ function App(){
  const [logType,setLogType]=useState("TODAS");
  const [logRange,setLogRange]=useState("30");
  const [logLimit,setLogLimit]=useState(30);
+ const [pulseDetail,setPulseDetail]=useState(null);
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
@@ -325,7 +334,31 @@ function App(){
    return score(b)-score(a);
  });
 
- const tareasActivas=(db.tareas||[]).filter(t=>!t.completada);
+
+ // PULSO COMERCIAL // rolling 30 days + four 7-day rhythm buckets.
+ const pulseStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-29);return localISODate(d)})();
+ const pulseActivities=(db.actividades||[]).filter(a=>a.fecha&&a.fecha>=pulseStart&&a.fecha<=today);
+ const pulseContactIds=[...new Set(pulseActivities.map(a=>a.contactoId).filter(Boolean))];
+ const pulseCompanyIds=[...new Set(pulseActivities.map(a=>a.empresaId).filter(Boolean))];
+ const pulseCoverageIds=[...new Set([...pulseContactIds.map(id=>`c:${id}`),...pulseCompanyIds.filter(id=>!pulseActivities.some(a=>a.contactoId&&a.empresaId===id)).map(id=>`e:${id}`)])];
+ const pulseContacts=pulseContactIds.map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
+ const pulseWithNext=pulseContacts.filter(c=>c.proximo&&c.proximo>=today);
+ const pulseWithoutNext=pulseContacts.filter(c=>!c.proximo||c.proximo<today);
+ const pulseOverdue=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha<today);
+ const pulseUpcoming=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha>=today&&t.fecha<=next7);
+ const pulseNewOpps=(db.oportunidades||[]).filter(o=>{
+   const created=(o.createdAt||"").slice(0,10); return created&&created>=pulseStart&&created<=today;
+ });
+ const pulsePct=pulseContacts.length?Math.round(pulseWithNext.length*100/pulseContacts.length):0;
+ const pulseWeeks=[3,2,1,0].map(back=>{
+   const end=new Date();end.setHours(0,0,0,0);end.setDate(end.getDate()-back*7);
+   const start=new Date(end);start.setDate(start.getDate()-6);
+   const sy=localISODate(start),ey=localISODate(end);
+   return {label:back===0?"ESTA SEM":`SEM -${back}`,start:sy,end:ey,items:pulseActivities.filter(a=>a.fecha>=sy&&a.fecha<=ey)};
+ });
+ const pulseMax=Math.max(1,...pulseWeeks.map(w=>w.items.length));
+
+  const tareasActivas=(db.tareas||[]).filter(t=>!t.completada);
  const tareasVencidas=tareasActivas.filter(t=>t.fecha && t.fecha<today).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const tareasHoy=tareasActivas.filter(t=>t.fecha===today);
  const tareas7=tareasActivas.filter(t=>t.fecha>today && t.fecha<=next7).sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -671,7 +704,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.52 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.53 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -725,6 +758,51 @@ function App(){
      </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}
    </div>
     </>}
+  {tab==="pulse"&&<div className="section">
+   <div className="section-title"><span>&gt; PULSO COMERCIAL // 30 DÍAS</span><span>{pulseStart} → {today}</span></div>
+   <div className="stats">
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("activities")}><b>{pulseActivities.length}</b><span className="small">ACTIVIDADES</span></button>
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("coverage")}><b>{pulseCoverageIds.length}</b><span className="small">COBERTURA</span></button>
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("next")}><b>{pulsePct}%</b><span className="small">CON PRÓXIMO PASO</span></button>
+   </div>
+   <div className="stats">
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("overdue")}><b>{pulseOverdue.length}</b><span className="small">VENCIDOS</span></button>
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("upcoming")}><b>{pulseUpcoming.length}</b><span className="small">PRÓXIMOS 7 DÍAS</span></button>
+    <button className="stat pulse-stat" onClick={()=>setPulseDetail("pipeline")}><b>{pulseNewOpps.length}</b><span className="small">NUEVAS OPORT.</span></button>
+   </div>
+   <div className="section-title"><span>&gt; RITMO // 4 SEMANAS</span><span>ACTIVIDADES</span></div>
+   <div className="card">
+    {pulseWeeks.map((w,i)=><button key={w.start} className="pulse-week" onClick={()=>setPulseDetail(`week:${i}`)}>
+      <span className="small">{w.label}</span><span className="pulse-bar"><i style={{width:`${Math.max(3,w.items.length/pulseMax*100)}%`}}></i></span><b>{w.items.length}</b>
+    </button>)}
+   </div>
+   <div className="section-title"><span>&gt; LECTURA</span><span>ACCIONABLE</span></div>
+   <div className="card">
+    {pulseOverdue.length>0&&<button className="pulse-insight" onClick={()=>setPulseDetail("overdue")}>! {pulseOverdue.length} seguimiento{pulseOverdue.length!==1?"s":""} vencido{pulseOverdue.length!==1?"s":""}. <b>VER →</b></button>}
+    {pulseWithoutNext.length>0&&<button className="pulse-insight" onClick={()=>setPulseDetail("withoutNext")}>! {pulseWithoutNext.length} contacto{pulseWithoutNext.length!==1?"s":""} trabajado{pulseWithoutNext.length!==1?"s":""} sin próximo paso vigente. <b>VER →</b></button>}
+    {pulseActivities.length>0&&pulseCoverageIds.length>0&&pulseActivities.length/pulseCoverageIds.length>=4&&<button className="pulse-insight" onClick={()=>setPulseDetail("coverage")}>! Actividad concentrada: {pulseActivities.length} interacciones sobre {pulseCoverageIds.length} relaciones. <b>REVISAR →</b></button>}
+    {!pulseOverdue.length&&!pulseWithoutNext.length&&<div className="pulse-insight">✓ Seguimientos al día y contactos trabajados con próximo paso.</div>}
+   </div>
+   {pulseDetail&&(()=>{
+    let title="",items=null;
+    if(pulseDetail==="activities"){title="ACTIVIDADES // 30 DÍAS";items=pulseActivities.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))}
+    if(pulseDetail==="coverage"){title="COBERTURA // RELACIONES TRABAJADAS";items=pulseContacts}
+    if(pulseDetail==="next"){title="CONTACTOS CON PRÓXIMO PASO";items=pulseWithNext}
+    if(pulseDetail==="withoutNext"){title="SIN PRÓXIMO PASO VIGENTE";items=pulseWithoutNext}
+    if(pulseDetail==="overdue"){title="SEGUIMIENTOS VENCIDOS";items=pulseOverdue}
+    if(pulseDetail==="upcoming"){title="PRÓXIMOS 7 DÍAS";items=pulseUpcoming}
+    if(pulseDetail==="pipeline"){title="NUEVAS OPORTUNIDADES // 30 DÍAS";items=pulseNewOpps}
+    if(pulseDetail.startsWith("week:")){const w=pulseWeeks[Number(pulseDetail.split(":")[1])];title=`${w.label} // ${w.start} → ${w.end}`;items=w.items}
+    return <div className="pulse-detail">
+     <div className="section-title"><span>&gt; {title}</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
+     {!items?.length?<div className="empty">SIN REGISTROS.</div>:
+      (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?items.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
+      (pulseDetail==="overdue"||pulseDetail==="upcoming")?items.map(t=><TaskCard key={t.id} t={t}/>):
+      pulseDetail==="pipeline"?items.map(o=><Opportunity key={o.id} o={o}/>):
+      items.map(a=>{const c=db.contactos.find(x=>x.id===a.contactoId);return <div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{c?.nombre||emp(a.empresaId)?.nombre||"SIN RELACIÓN"}</div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions">{c&&<button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button>}{a.empresaId&&<button className="btn dim" onClick={()=>setModal({viewCompany:a.empresaId})}>VER EMPRESA →</button>}</div></div>})}
+    </div>
+   })()}
+  </div>}
   {tab==="red"&&<div className="section"><div className="section-title"><span>&gt; RELACIONES</span><button className="btn primary" onClick={()=>setModal({newContact:true})}>+ NUEVO CONTACTO</button></div>
    <div className="small" style={{marginBottom:"8px"}}>{db.contactos.length} CONTACTOS // USA EL BUSCADOR UNIVERSAL DEL HEADER PARA ENCONTRAR UNA PERSONA.</div>
    {db.contactos.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.estado}</span></div>
@@ -824,7 +902,7 @@ function App(){
   </div>}
   <button className="fab" aria-label="Acción rápida" onClick={()=>setModal({quick:true})}>+</button>
   <nav className="nav">
-   {[["hoy","F1","HOY"],["red","F2","RED"],["pipe","F3","PIPE"],["emp","F4","EMP"],["radar","F5","RADAR"],["log","F6","LOG"],["data","F7","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
+   {[["hoy","F1","HOY"],["pulse","F2","PULSO"],["red","F3","RED"],["pipe","F4","PIPE"],["emp","F5","EMP"],["radar","F6","RADAR"],["log","F7","LOG"],["data","F8","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
   </nav>
   {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
     {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>

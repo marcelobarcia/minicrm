@@ -1,4 +1,4 @@
-const CACHE = "ninja-sales-terminal-v052";
+const CACHE = "ninja-sales-terminal-v053";
 const SHELL = [
   "./",
   "./index.html",
