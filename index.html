@@ -218,6 +218,7 @@ function App(){
  const [logRange,setLogRange]=useState("30");
  const [logLimit,setLogLimit]=useState(30);
  const [pulseDetail,setPulseDetail]=useState(null);
+ const [initiativePortfolioFilter,setInitiativePortfolioFilter]=useState("Activa");
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
@@ -760,7 +761,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.57 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.58 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -823,7 +824,7 @@ function App(){
    </div>
     </>}
   {tab==="pulse"&&<div className="section">
-   <div className="section-title"><span>&gt; PULSO COMERCIAL // 30 DÍAS</span><span>{pulseStart} → {today}</span></div>
+   <div className="section-title"><span>&gt; PULSO COMERCIAL // 30 DÍAS</span><div className="actions"><button className="btn primary" onClick={()=>{setInitiativePortfolioFilter("Activa");setPulseDetail("initiatives")}}>INICIATIVAS ACTIVAS →</button><span>{pulseStart} → {today}</span></div></div>
    <div className="stats">
     <button className="stat pulse-stat" onClick={()=>setPulseDetail("activities")}><b>{pulseActivities.length}</b><span className="small">ACTIVIDADES</span></button>
     <button className="stat pulse-stat" onClick={()=>setPulseDetail("coverage")}><b>{pulseCoverageIds.length}</b><span className="small">COBERTURA</span></button>
@@ -859,8 +860,18 @@ function App(){
     if(pulseDetail==="pipeline"){title="NUEVAS OPORTUNIDADES // 30 DÍAS";items=pulseNewOpps}
     if(pulseDetail.startsWith("initiative:")){const id=pulseDetail.split(":")[1],x=pulseInitiatives.find(z=>z.i.id===id);title=`INICIATIVA // ${x?.i.nombre||""}`;items=x?.acts||[]}
     if(pulseDetail.startsWith("week:")){const w=pulseWeeks[Number(pulseDetail.split(":")[1])];title=`${w.label} // ${w.start} → ${w.end}`;items=w.items}
+    if(pulseDetail==="initiatives"){
+     const all=(db.iniciativas||[]), filtered=all.filter(i=>i.estado===initiativePortfolioFilter);
+     const counts={Activa:all.filter(i=>i.estado==="Activa").length,Pausada:all.filter(i=>i.estado==="Pausada").length,Cerrada:all.filter(i=>i.estado==="Cerrada").length};
+     return <div className="pulse-detail">
+      <div className="section-title"><span>&gt; INICIATIVAS COMERCIALES</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
+      <div className="actions" style={{marginBottom:"10px"}}>{["Activa","Pausada","Cerrada"].map(st=><button key={st} className={`btn ${initiativePortfolioFilter===st?"primary":"dim"}`} onClick={()=>setInitiativePortfolioFilter(st)}>{st.toUpperCase()}S {counts[st]}</button>)}<button className="btn" onClick={()=>setModal({newInitiative:true})}>+ INICIATIVA</button></div>
+      {filtered.length?filtered.slice().sort((a,b)=>(a.proximoStatus||"9999-99-99").localeCompare(b.proximoStatus||"9999-99-99")).map(i=>{const acts=(db.actividades||[]).filter(a=>a.iniciativaId===i.id),opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id),moved=(i.cuentas||[]).filter(c=>c.estado&&c.estado!=="Pendiente").length;return <div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{i.tipo} // {emp(i.empresaId)?.nombre||"SIN PARTNER"}</div></div><span className="tag">{i.estado}</span></div><div className="meta">CUENTAS MOVIDAS: {moved}/{(i.cuentas||[]).length} // ACTIVIDADES: {acts.length} // OPORTUNIDADES: {opps.length}<br/>PRÓXIMO STATUS: {i.proximoStatus||"—"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewInitiative:i.id})}>ABRIR →</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button>{i.estado==="Activa"&&<button className="btn dim" onClick={()=>setModal({statusInitiative:i.id})}>STATUS</button>}</div></div>}):<div className="empty">SIN INICIATIVAS {initiativePortfolioFilter.toUpperCase()}S.</div>}
+     </div>
+    }
     return <div className="pulse-detail">
      <div className="section-title"><span>&gt; {title}</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
+     {pulseDetail.startsWith("initiative:")&&<div className="actions" style={{marginBottom:"8px"}}><button className="btn primary" onClick={()=>setModal({viewInitiative:pulseDetail.split(":")[1]})}>ABRIR INICIATIVA →</button></div>}
      {!items?.length?<div className="empty">SIN REGISTROS.</div>:
       (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?items.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
       (pulseDetail==="overdue"||pulseDetail==="upcoming")?items.map(t=><TaskCard key={t.id} t={t}/>):
