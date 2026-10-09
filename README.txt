@@ -15,3 +15,16 @@ INSTALACIÓN
 1. Ejecutar supabase_v036.sql UNA VEZ en Supabase > SQL Editor.
 2. Subir todos los archivos al root de GitHub Pages reemplazando los existentes.
 3. Verificar PERSONAL SALES CRM // v0.36 PWA.
+
+v0.56
+- Iniciativa Comercial generalizada: Sales Play, Prospección, Partner, Reactivación, Evento, Campaña, Territorio y Otro.
+- Actividades pueden atribuirse opcionalmente a una iniciativa.
+- Oportunidades pueden atribuirse a una iniciativa (guardado en observaciones; no requiere columna nueva).
+- PULSO muestra origen de actividad por iniciativa en últimos 30 días, con drilldown.
+- Ficha de iniciativa muestra actividades, oportunidades y cuentas movidas.
+- El STATUS usa actividad/oportunidades atribuidas a esa iniciativa para evitar mezclar movimientos de otras estrategias.
+- Ejecutar supabase_v056.sql una vez antes de usar esta versión.
+
+IMPORTANTE V0.56
+----------------
+El archivo supabase_v056.sql es autosuficiente: crea public.iniciativas si todavía no existe y luego agrega la relación desde actividades. No es necesario ejecutar supabase_v055.sql previamente.
