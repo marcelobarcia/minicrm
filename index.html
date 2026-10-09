@@ -197,8 +197,8 @@ const today=localISODate();
 function load(){
  try{
   const x=JSON.parse(localStorage.getItem(KEY))||SEED;
-  return {...x,tareas:Array.isArray(x.tareas)?x.tareas:[],notas:Array.isArray(x.notas)?x.notas:[]};
- }catch{return {...SEED,tareas:[],notas:[]}}
+  return {...x,tareas:Array.isArray(x.tareas)?x.tareas:[],notas:Array.isArray(x.notas)?x.notas:[],licitaciones:Array.isArray(x.licitaciones)?x.licitaciones:[]};
+ }catch{return {...SEED,tareas:[],notas:[],licitaciones:[]}}
 }
 function daysSince(d){return Math.floor((new Date(today)-new Date(d))/86400000)}
 function App(){
@@ -244,10 +244,11 @@ function App(){
   const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
   const triggers=(rows.triggers||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",fecha:x.fecha||"",tipo:x.tipo||"Otro",titulo:x.titulo||"",descripcion:x.descripcion||"",relevancia:x.relevancia||"Media",fuente:x.fuente||"",link:x.link||"",estado:x.estado||"Nuevo",createdAt:x.created_at}));
   const radar=(rows.radar||[]).map(x=>({id:x.id,nombre:x.nombre||"",sector:x.sector||"Público",sistema:x.sistema_inferido||"",confianza:x.confianza||"Media",estado:x.estado||"Observando",notas:x.notas||"",empresaId:x.empresa_id||"",evidencias:Array.isArray(x.evidencias)?x.evidencias:[],createdAt:x.created_at}));
-  return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers,radar};
+  const licitaciones=(rows.licitaciones||[]).map(x=>({id:x.id,empresaId:x.empresa_id||"",triggerId:x.trigger_id||"",nombre:x.nombre||"",estado:x.estado||"Publicada",participacion:x.participacion||"Evaluando",fechaPublicacion:x.fecha_publicacion||"",presupuesto:Number(x.presupuesto_total||0),moneda:x.moneda||"CLP",duracion:Number(x.duracion_meses||0),inicio:x.fecha_inicio||"",fin:x.fecha_fin||"",prepararDias:Number(x.preparar_dias||180),montoAdjudicado:Number(x.monto_adjudicado||0),fuente:x.fuente||"",link:x.link||"",notas:x.notas||"",partidas:Array.isArray(x.partidas)?x.partidas:[],adjudicatarios:Array.isArray(x.adjudicatarios)?x.adjudicatarios:[],createdAt:x.created_at}));
+  return {empresas,contactos,oportunidades,actividades,tareas,notas,triggers,radar,licitaciones};
  }
  function cloudRowToUI(table,row){
-  const rows={empresas:[],contactos:[],oportunidades:[],actividades:[],tareas:[],notas:[],triggers:[],radar:[]};
+  const rows={empresas:[],contactos:[],oportunidades:[],actividades:[],tareas:[],notas:[],triggers:[],radar:[],licitaciones:[]};
   rows[table]=[row]; return toUI(rows)[table][0];
  }
  function applyCloudRows(changes){
@@ -264,7 +265,7 @@ function App(){
   if(!session)return;
   setCloudStatus("SINCRONIZANDO...");
   try{
-   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar"], rows={}, counts={};
+   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar","licitaciones"], rows={}, counts={};
    for(const t of names){
     const {data,error}=await sb.from(t).select("*").order("created_at",{ascending:true});
     if(error)throw error; rows[t]=data||[];counts[t]=rows[t].length;
@@ -335,6 +336,7 @@ function App(){
  });
 
 
+ const tenderRenewals=(db.licitaciones||[]).map(t=>({...t,renewalDate:minusDaysISO(t.fin,t.prepararDias)})).filter(t=>t.fin&&t.renewalDate&&t.renewalDate<=next7&&t.fin>=today).sort((a,b)=>a.renewalDate.localeCompare(b.renewalDate));
  // PULSO COMERCIAL // rolling 30 days + four 7-day rhythm buckets.
  const pulseStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-29);return localISODate(d)})();
  const pulseActivities=(db.actividades||[]).filter(a=>a.fecha&&a.fecha>=pulseStart&&a.fecha<=today);
@@ -553,6 +555,29 @@ function App(){
  function deleteTrigger(id){
   askConfirm("ELIMINAR TRIGGER","Se eliminará definitivamente esta señal.",async()=>{setDialog(null);const {error}=await sb.from("triggers").delete().eq("id",id);if(!(await cloudError(error)))await loadCloud()});
  }
+ function addMonthsISO(start,months){if(!start||!months)return "";const [y,m,d]=start.split("-").map(Number);const x=new Date(y,m-1,d);x.setMonth(x.getMonth()+Number(months));x.setDate(x.getDate()-1);return localISODate(x)}
+ function minusDaysISO(date,days){if(!date)return "";const [y,m,d]=date.split("-").map(Number),x=new Date(y,m-1,d);x.setDate(x.getDate()-Number(days||0));return localISODate(x)}
+ async function saveTender(ev){
+  ev.preventDefault();const f=new FormData(ev.currentTarget),editing=modal.editTender?db.licitaciones.find(x=>x.id===modal.editTender):null;
+  const empresaId=f.get("empresaId")||modal.company||editing?.empresaId||null;if(!empresaId){showInfo("FALTA EMPRESA","Asocia la licitación a una empresa u organismo.");return}
+  const inicio=f.get("inicio")||null,duracion=Number(f.get("duracion")||0),fin=f.get("fin")||addMonthsISO(inicio,duracion)||null;
+  const partidas=[...ev.currentTarget.querySelectorAll("[data-partida]")].map(r=>({nombre:r.querySelector('[name="partidaNombre"]')?.value.trim()||"",monto:Number(r.querySelector('[name="partidaMonto"]')?.value||0)})).filter(x=>x.nombre||x.monto);
+  const adjudicatarios=[...ev.currentTarget.querySelectorAll("[data-adjudicatario]")].map(r=>({empresa:r.querySelector('[name="adjEmpresa"]')?.value.trim()||"",item:r.querySelector('[name="adjItem"]')?.value.trim()||"",monto:Number(r.querySelector('[name="adjMonto"]')?.value||0),nosotros:r.querySelector('[name="adjNosotros"]')?.checked||false})).filter(x=>x.empresa);
+  const row={empresa_id:empresaId,trigger_id:modal.trigger||editing?.triggerId||null,nombre:f.get("nombre").trim(),estado:f.get("estado"),participacion:f.get("participacion"),fecha_publicacion:f.get("publicacion")||null,presupuesto_total:Number(f.get("presupuesto")||0)||null,moneda:f.get("moneda")||"CLP",duracion_meses:duracion||null,fecha_inicio:inicio,fecha_fin:fin,preparar_dias:Number(f.get("preparar")||180),monto_adjudicado:Number(f.get("montoAdjudicado")||0)||null,fuente:f.get("fuente").trim()||null,link:f.get("link").trim()||null,notas:f.get("notas").trim()||null,partidas,adjudicatarios};
+  let data,error;if(editing)({data,error}=await sb.from("licitaciones").update(row).eq("id",editing.id).select().single());else ({data,error}=await sb.from("licitaciones").insert({...row,user_id:session.user.id}).select().single());
+  if(await cloudError(error))return;applyCloudRows([["licitaciones",data]]);setModal({viewTender:data.id});
+ }
+ function deleteTender(id){askConfirm("ELIMINAR LICITACIÓN","Se eliminará el registro de inteligencia comercial.",async()=>{setDialog(null);const {error}=await sb.from("licitaciones").delete().eq("id",id);if(await cloudError(error))return;setDb(d=>({...d,licitaciones:(d.licitaciones||[]).filter(x=>x.id!==id)}));setModal(false)})}
+ const TenderForm=({t={}})=>{const [parts,setParts]=React.useState(t.partidas?.length?t.partidas:[{nombre:"",monto:""}]);const [awards,setAwards]=React.useState(t.adjudicatarios?.length?t.adjudicatarios:[{empresa:"",item:"",monto:"",nosotros:false}]);return <form onSubmit={saveTender}>
+  <label>EMPRESA / ORGANISMO *</label><select name="empresaId" defaultValue={t.empresaId||modal.company||""} required><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+  <label>LICITACIÓN / CONTRATO *</label><input name="nombre" required defaultValue={t.nombre||""}/><label>ESTADO</label><select name="estado" defaultValue={t.estado||"Publicada"}>{["Detectada","Publicada","Evaluación","Adjudicada","Desierta","Cerrada","Contrato vigente","Finalizada"].map(x=><option key={x}>{x}</option>)}</select>
+  <label>¿PARTICIPAMOS?</label><select name="participacion" defaultValue={t.participacion||"Evaluando"}><option>Evaluando</option><option>Sí</option><option>No</option></select><label>FECHA PUBLICACIÓN</label><input name="publicacion" type="date" defaultValue={t.fechaPublicacion||today}/>
+  <div className="form-grid"><div><label>PRESUPUESTO TOTAL</label><input name="presupuesto" type="number" min="0" defaultValue={t.presupuesto||""}/></div><div><label>MONEDA</label><select name="moneda" defaultValue={t.moneda||"CLP"}><option>CLP</option><option>USD</option><option>UF</option><option>EUR</option></select></div></div>
+  <div className="form-grid"><div><label>INICIO CONTRATO</label><input name="inicio" type="date" defaultValue={t.inicio||""}/></div><div><label>DURACIÓN MESES</label><input name="duracion" type="number" min="0" defaultValue={t.duracion||""}/></div></div><label>FIN CONTRATO (OPCIONAL)</label><input name="fin" type="date" defaultValue={t.fin||""}/><label>AVISAR RENOVACIÓN</label><select name="preparar" defaultValue={String(t.prepararDias||180)}><option value="90">90 DÍAS ANTES</option><option value="180">180 DÍAS ANTES</option><option value="270">270 DÍAS ANTES</option><option value="365">365 DÍAS ANTES</option></select>
+  <hr/><div className="section-title"><span>&gt; COMPOSICIÓN PRESUPUESTO</span><button type="button" className="btn dim" onClick={()=>setParts(x=>[...x,{nombre:"",monto:""}])}>+ ÍTEM</button></div>{parts.map((x,i)=><div className="form-grid" data-partida key={i}><input name="partidaNombre" defaultValue={x.nombre} placeholder="Servicios / Suscripciones / Soporte..."/><input name="partidaMonto" type="number" min="0" defaultValue={x.monto||""} placeholder="Monto"/></div>)}
+  <hr/><div className="section-title"><span>&gt; ADJUDICACIÓN / COMPETENCIA</span><button type="button" className="btn dim" onClick={()=>setAwards(x=>[...x,{empresa:"",item:"",monto:"",nosotros:false}])}>+ ADJUDICATARIO</button></div>{awards.map((x,i)=><div className="card" data-adjudicatario key={i}><input name="adjEmpresa" defaultValue={x.empresa} placeholder="Empresa adjudicada"/><input name="adjItem" defaultValue={x.item} placeholder="Ítem / alcance adjudicado"/><input name="adjMonto" type="number" min="0" defaultValue={x.monto||""} placeholder="Monto adjudicado"/><label style={{marginTop:7}}><input name="adjNosotros" type="checkbox" defaultChecked={!!x.nosotros} style={{width:"auto",marginRight:8}}/>NOSOTROS / ATAWAY</label></div>)}
+  <label>MONTO ADJUDICADO TOTAL</label><input name="montoAdjudicado" type="number" min="0" defaultValue={t.montoAdjudicado||""}/><label>FUENTE</label><input name="fuente" defaultValue={t.fuente||""} placeholder="Mercado Público / portal / documento"/><label>LINK</label><input name="link" defaultValue={t.link||""}/><label>NOTAS</label><textarea name="notas" defaultValue={t.notas||""}></textarea><div className="actions"><button className="btn primary">GUARDAR</button>{t.id&&<button type="button" className="btn danger" onClick={()=>deleteTender(t.id)}>ELIMINAR</button>}<button type="button" className="btn dim" onClick={()=>setModal(false)}>CANCELAR</button></div>
+ </form>};
  async function saveNote(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const note={texto:f.get("texto").trim(),empresa_id:f.get("empresaId")||null,contacto_id:f.get("contactoId")||null,oportunidad_id:f.get("oportunidadId")||null};
@@ -704,7 +729,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.53 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.54 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -740,6 +765,10 @@ function App(){
    <div className="section">
     <div className="section-title"><span>&gt; PRÓXIMOS 7 DÍAS</span><span>{proximas.length+tareas7.length}</span></div>
     {tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}
+   </div>
+   <div className="section">
+    <div className="section-title"><span>&gt; RENOVACIONES / CONTRATOS</span><span>{tenderRenewals.length}</span></div>
+    {tenderRenewals.length?tenderRenewals.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{emp(t.empresaId)?.nombre||"EMPRESA"}</div><div>{t.nombre}</div></div><span className="tag">RENOVACIÓN</span></div><div className="meta">VENTANA: {t.renewalDate} // VENCE: {t.fin}<br/>INCUMBENTE: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"SIN REGISTRAR"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewTender:t.id})}>VER CONTRATO →</button></div></div>):<div className="empty">SIN RENOVACIONES EN VENTANA.</div>}
    </div>
    <div className="section">
     <div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
@@ -826,7 +855,7 @@ function App(){
   {tab==="data"&&<div className="section">
    <div className="section-title"><span>&gt; SUPABASE</span><span className={cloudStatus==="CONECTADO"?"ok":"warn"}>{cloudStatus}</span></div>
    <div className="card"><div className="meta">USUARIO: {session.user.email}</div>
-   {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}<br/>TRIGGERS: {cloudCounts.triggers||0} // RADAR: {cloudCounts.radar||0}</div>}
+   {cloudCounts&&<div className="meta" style={{marginTop:"8px"}}>EMPRESAS: {cloudCounts.empresas} // CONTACTOS: {cloudCounts.contactos}<br/>OPORTUNIDADES: {cloudCounts.oportunidades} // ACTIVIDADES: {cloudCounts.actividades}<br/>TAREAS: {cloudCounts.tareas} // NOTAS: {cloudCounts.notas}<br/>TRIGGERS: {cloudCounts.triggers||0} // RADAR: {cloudCounts.radar||0}<br/>LICITACIONES: {cloudCounts.licitaciones||0}</div>}
    <div className="meta" style={{marginTop:"8px"}}>SUPABASE ES LA ÚNICA FUENTE OFICIAL. LA COPIA LOCAL SOLO SE USA COMO CACHÉ Y NUNCA REEMPLAZA DATOS DE LA NUBE.</div>
    <div className="actions"><button className="btn dim" onClick={loadCloud}>SINCRONIZAR AHORA</button></div>
    </div>
@@ -913,8 +942,10 @@ function App(){
        <button className="btn" onClick={()=>setModal({})}>☎ ACTIVIDAD</button>
        <button className="btn" onClick={()=>setModal({newContact:true})}>👤 CONTACTO</button>
        <button className="btn" onClick={()=>setModal({newOpp:true})}>$ OPORTUNIDAD</button>
+       <button className="btn" onClick={()=>setModal({newTender:true})}>▤ LICITACIÓN</button>
       </div></div>
-     </>:modal.newTask?<><div className="section-title"><span>&gt; NUEVA TAREA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
+     </>:(modal.newTender||modal.editTender)?<><div className="section-title"><span>&gt; {modal.editTender?"EDITAR LICITACIÓN":"NUEVA LICITACIÓN"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div><TenderForm t={modal.editTender?(db.licitaciones||[]).find(x=>x.id===modal.editTender)||{}:(()=>{const tr=modal.trigger?(db.triggers||[]).find(x=>x.id===modal.trigger):null;return {empresaId:modal.company||tr?.empresaId||"",nombre:tr?.titulo||"",fechaPublicacion:tr?.fecha||today,fuente:tr?.fuente||"",link:tr?.link||"",notas:tr?.descripcion||""}})()}/></>:modal.viewTender?(()=>{const t=(db.licitaciones||[]).find(x=>x.id===modal.viewTender);if(!t)return <div className="empty">LICITACIÓN NO ENCONTRADA.</div>;const totalParts=t.partidas.reduce((a,x)=>a+Number(x.monto||0),0);return <><div className="section-title"><span>&gt; LICITACIÓN / CONTRATO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div><div className="title" style={{fontSize:"20px"}}>{t.nombre}</div><div>{emp(t.empresaId)?.nombre||"SIN EMPRESA"}</div><div><span className="tag">{t.estado}</span><span className="tag">PARTICIPAMOS: {t.participacion}</span></div><div className="meta">PUBLICACIÓN: {t.fechaPublicacion||"—"}<br/>PRESUPUESTO: {t.presupuesto?`${t.moneda} ${Number(t.presupuesto).toLocaleString("es-CL")}`:"—"}<br/>CONTRATO: {t.inicio||"—"} → {t.fin||"—"} {t.duracion?`// ${t.duracion} MESES`:""}<br/>VENTANA RENOVACIÓN: {t.fin?minusDaysISO(t.fin,t.prepararDias):"—"} ({t.prepararDias} DÍAS ANTES)</div><hr/><div className="section-title"><span>&gt; COMPOSICIÓN PRESUPUESTO</span><span>{t.partidas.length}</span></div>{t.partidas.length?t.partidas.map((x,i)=><div className="card" key={i}><div className="row"><b>{x.nombre||"ÍTEM"}</b><span>{t.moneda} {Number(x.monto||0).toLocaleString("es-CL")}</span></div>{t.presupuesto>0&&<div className="meta">{Math.round(Number(x.monto||0)*100/t.presupuesto)}% DEL PRESUPUESTO</div>}</div>):<div className="empty">SIN PARTIDAS.</div>} {totalParts>0&&t.presupuesto>0&&<div className="meta">PARTIDAS REGISTRADAS: {t.moneda} {totalParts.toLocaleString("es-CL")} // {Math.round(totalParts*100/t.presupuesto)}% DEL TOTAL</div>}<hr/><div className="section-title"><span>&gt; ADJUDICACIÓN / COMPETENCIA</span><span>{t.adjudicatarios.length}</span></div>{t.adjudicatarios.length?t.adjudicatarios.map((a,i)=><div className="card" key={i}><div className="row"><div><div className="title">{a.empresa}</div><div className="meta">{a.item||"ALCANCE NO ESPECIFICADO"}</div></div><span className="tag">{a.nosotros?"NOSOTROS":"COMPETIDOR"}</span></div>{a.monto>0&&<div>{t.moneda} {Number(a.monto).toLocaleString("es-CL")}</div>}</div>):<div className="empty">SIN ADJUDICATARIOS REGISTRADOS.</div>}<hr/><div className="small">FUENTE: {t.fuente||"—"}</div><div>{t.notas||""}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn primary" onClick={()=>setModal({editTender:t.id})}>EDITAR</button></div></>})():modal.newTask?<>
+<div className="section-title"><span>&gt; NUEVA TAREA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveTask}>
        <label>¿QUÉ HAY QUE HACER? *</label><textarea name="texto" required autoFocus placeholder="Ej: Llamar a Romina por Nación Servicios"></textarea>
        <label>FECHA</label><input name="fecha" type="date" defaultValue={today}/>
@@ -1017,7 +1048,7 @@ function App(){
         <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
        </div>
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{contactTriggers.length}</span></div>
-       {contactTriggers.length?contactTriggers.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:c.id,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button></div></div>):<div className="empty">SIN TRIGGERS ASOCIADOS.</div>}
+       {contactTriggers.length?contactTriggers.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:c.id,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button></div></div>):<div className="empty">SIN TRIGGERS ASOCIADOS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{contactOpps.length}</span></div>
        {contactOpps.length?contactOpps.map(o=><div className="card" key={o.id}><div className="row"><div><div className="title">{emp(o.empresaId)?.nombre||"SIN EMPRESA"}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div><div className="meta">PRÓX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR →</button></div></div>):<div className="empty">SIN OPORTUNIDADES ASOCIADAS.</div>}
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
@@ -1098,7 +1129,7 @@ function App(){
          </div>;
        })()}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn dim" onClick={()=>setModal({newTrigger:true,company:o.empresaId,opp:o.id})}>+ TRIGGER</button></div>
-       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><div>{o.nota||"—"}</div>
        <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
@@ -1123,6 +1154,7 @@ function App(){
        <div className="actions">
         <button className="btn primary" onClick={()=>setModal({newContact:true,company:e.id})}>+ CONTACTO</button>
         <button className="btn primary" onClick={()=>setModal({newTrigger:true,company:e.id})}>+ TRIGGER</button>
+        <button className="btn primary" onClick={()=>setModal({newTender:true,company:e.id})}>+ LICITACIÓN</button>
         <button className="btn primary" onClick={()=>setModal({newTask:true,company:e.id})}>+ TAREA</button>
         <button className="btn primary" onClick={()=>setModal({newNote:true,company:e.id})}>+ NOTA</button>
         <button className="btn" onClick={()=>setModal({company:e.id})}>+ ACTIVIDAD</button>
@@ -1151,8 +1183,11 @@ function App(){
          return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{(db.triggers||[]).filter(t=>t.empresaId===e.id).length}</span></div>
-       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
+       {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.empresaId===e.id)&&<div className="empty">SIN TRIGGERS REGISTRADOS.</div>}
+       <hr/><div className="section-title"><span>&gt; LICITACIONES / CONTRATOS</span><span>{(db.licitaciones||[]).filter(t=>t.empresaId===e.id).length}</span></div>
+       {(db.licitaciones||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fechaPublicacion||"").localeCompare(a.fechaPublicacion||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.nombre}</div><div className="meta">{t.estado} // PARTICIPAMOS: {t.participacion}</div></div>{t.presupuesto>0&&<span className="tag">{t.moneda} {Number(t.presupuesto).toLocaleString("es-CL")}</span>}</div><div className="meta">VENCE: {t.fin||"—"} // INCUMBENTE: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewTender:t.id})}>VER →</button></div></div>)}
+       {!(db.licitaciones||[]).some(t=>t.empresaId===e.id)&&<div className="empty">SIN LICITACIONES REGISTRADAS.</div>}
        <hr/><div className="section-title"><span>&gt; OPORTUNIDADES</span><span>{os.length}</span></div>
        {os.length?os.map(o=><Opportunity key={o.id} o={o}/>):<div className="empty">SIN OPORTUNIDADES.</div>}
        <hr/><div className="section-title"><span>&gt; TAREAS</span><span>{ts.filter(t=>!t.completada).length} ABIERTAS</span></div>
