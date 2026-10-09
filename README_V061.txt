@@ -1,0 +1,1 @@
+NINJA SALES TERMINAL v0.61\n\n- Buscador universal incluye INICIATIVAS.\n- Busca por nombre, tipo, objetivo, estado, partner/origen, contacto y cuentas objetivo.\n- El resultado abre directamente la ficha de la iniciativa.\n- No requiere SQL nuevo.\n

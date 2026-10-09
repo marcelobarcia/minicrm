@@ -321,6 +321,7 @@ function App(){
   ...(db.radar||[]).filter(r=>norm([r.nombre,r.sector,r.sistema,r.confianza,r.estado,r.notas,...(r.evidencias||[]).map(e=>[e.titulo,e.fuente].join(" "))].join(" ")).includes(gs)).slice(0,6).map(r=>({kind:"RADAR",title:r.nombre,meta:[r.sistema||"Sistema sin inferir",r.confianza,r.estado].join(" // "),open:()=>setModal({viewRadar:r.id})})),
   ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" // "),open:()=>setModal({viewContact:c.id})})),
   ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.proxima].filter(Boolean).join(" // "),open:()=>setModal({viewOpp:o.id})})),
+  ...(db.iniciativas||[]).filter(i=>norm([i.nombre,i.tipo,i.objetivo,i.estado,emp(i.empresaId)?.nombre,db.contactos.find(c=>c.id===i.contactoId)?.nombre,...(i.cuentas||[]).map(c=>emp(c.empresaId)?.nombre||"")].join(" ")).includes(gs)).slice(0,6).map(i=>({kind:"INICIATIVA",title:i.nombre,meta:[i.tipo,emp(i.empresaId)?.nombre,i.estado,i.proximoStatus?`STATUS ${i.proximoStatus}`:""].filter(Boolean).join(" // "),open:()=>setModal({viewInitiative:i.id})})),
   ...(db.triggers||[]).filter(t=>norm([t.titulo,t.tipo,t.descripcion,t.fuente,t.relevancia,emp(t.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(t=>({kind:"TRIGGER",title:t.titulo,meta:[emp(t.empresaId)?.nombre,t.tipo,t.relevancia,t.estado].filter(Boolean).join(" // "),open:()=>t.oportunidadId?setModal({viewOpp:t.oportunidadId}):t.empresaId?setModal({viewCompany:t.empresaId}):setTab("hoy")})),
   ...(db.notas||[]).filter(n=>norm([n.texto,emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre,db.oportunidades.find(o=>o.id===n.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,5).map(n=>({kind:"NOTA",title:(n.texto||"").slice(0,80),meta:[emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre].filter(Boolean).join(" // "),open:()=>n.contactoId?setModal({viewContact:n.contactoId}):n.oportunidadId?setModal({viewOpp:n.oportunidadId}):n.empresaId?setModal({viewCompany:n.empresaId}):setTab("log")}))
  ];
@@ -771,7 +772,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.60 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.61 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -779,14 +780,14 @@ function App(){
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   <div className="global-search-wrap">
-   <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, oportunidad, trigger o nota...  [ / ]" /></div>
+   <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, iniciativa, oportunidad, trigger o nota...  [ / ]" /></div>
    {globalSearch&&<div className="global-search-results">
     {globalSearch.trim().length<2?<div className="empty">ESCRIBE AL MENOS 2 CARACTERES.</div>:globalResults.length?<>
-     {["EMPRESA","RADAR","CONTACTO","OPORTUNIDAD","TRIGGER","NOTA"].map(kind=>{
+     {["EMPRESA","RADAR","CONTACTO","INICIATIVA","OPORTUNIDAD","TRIGGER","NOTA"].map(kind=>{
       const rr=globalResults.filter(r=>r.kind===kind); if(!rr.length)return null;
-      return <div key={kind}><div className="search-group-title">&gt; {kind}{kind==="EMPRESA"?"S":kind==="CONTACTO"?"S":kind==="OPORTUNIDAD"?"ES":kind==="TRIGGER"?"S":"S"}</div>{rr.map((r,i)=><button className="search-hit" key={kind+i} onClick={()=>openGlobalResult(r)}><b>{r.title}</b><span>{r.meta||"ABRIR →"}</span></button>)}</div>
+      return <div key={kind}><div className="search-group-title">&gt; {kind}{kind==="EMPRESA"?"S":kind==="CONTACTO"?"S":kind==="OPORTUNIDAD"?"ES":kind==="INICIATIVA"?"S":kind==="TRIGGER"?"S":"S"}</div>{rr.map((r,i)=><button className="search-hit" key={kind+i} onClick={()=>openGlobalResult(r)}><b>{r.title}</b><span>{r.meta||"ABRIR →"}</span></button>)}</div>
      })}
-     <div className="search-hint">MOSTRANDO HASTA 31 COINCIDENCIAS // / PARA BUSCAR DESDE CUALQUIER PANTALLA</div>
+     <div className="search-hint">MOSTRANDO HASTA 37 COINCIDENCIAS // / PARA BUSCAR DESDE CUALQUIER PANTALLA</div>
     </>:<div className="empty">SIN COINCIDENCIAS.</div>}
    </div>}
   </div>
