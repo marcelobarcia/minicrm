@@ -144,6 +144,20 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .pulse-insight{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;text-align:left;padding:10px 2px;cursor:pointer;line-height:1.45}.pulse-insight:last-child{border-bottom:0}
 .pulse-detail{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
 @media(max-width:520px){.pulse-week{grid-template-columns:64px 1fr 26px;gap:7px}.pulse-stat{min-width:0}}
+
+.activity-timeline{border:1px solid var(--line);padding:14px;margin-bottom:16px;min-width:0}
+.timeline-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding:4px 0 10px;scrollbar-color:var(--amber) transparent}
+.timeline-track{display:flex;align-items:flex-start;width:max-content;min-width:100%;position:relative;padding-top:22px}
+.timeline-track:before{content:"";position:absolute;top:48px;left:18px;right:22px;height:2px;background:var(--amber)}
+.timeline-date{width:106px;flex:0 0 106px;position:relative;background:none;border:0;color:var(--amber);font:inherit;cursor:pointer;text-align:center;padding:0 5px}
+.timeline-date:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+.timeline-dot-wrap{height:52px;display:flex;align-items:center;justify-content:center}
+.timeline-dot{display:block;border:2px solid var(--amber);border-radius:50%;background:var(--bg,#080600);box-shadow:0 0 7px rgba(255,176,0,.2)}
+.timeline-date[aria-pressed="true"] .timeline-dot{background:var(--amber);box-shadow:0 0 12px rgba(255,176,0,.5)}
+.timeline-start{position:absolute;top:0;left:16px;font-size:10px}
+.timeline-arrow{flex:0 0 42px;line-height:52px;font-size:30px;position:relative;text-align:center}
+.timeline-date time{display:block;font-size:12px;margin-top:5px}.timeline-count{display:block;font-size:11px;margin-top:4px}
+.timeline-detail{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.timeline-detail p{white-space:pre-wrap;margin:5px 0 12px;overflow-wrap:anywhere}
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -220,6 +234,35 @@ function load(){
  }catch{return {...SEED,tareas:[],notas:[],licitaciones:[],iniciativas:[]}}
 }
 function daysSince(d){return Math.floor((new Date(businessISODate())-new Date(d))/86400000)}
+
+function ActivityTimeline({activities}){
+ const [selected,setSelected]=React.useState(null),scrollRef=React.useRef(null);
+ const groups=React.useMemo(()=>{
+  const dates=new Map();
+  activities.forEach(a=>{if(!a.fecha)return;const list=dates.get(a.fecha)||[];list.push(a);dates.set(a.fecha,list)});
+  return [...dates].sort(([a],[b])=>a.localeCompare(b)).map(([date,items])=>({date,items}));
+ },[activities]);
+ const latest=groups.at(-1)?.date;
+ React.useLayoutEffect(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth},[latest]);
+ const active=groups.find(g=>g.date===selected);
+ const count=groups.reduce((n,g)=>n+g.items.length,0);
+ const format=date=>new Intl.DateTimeFormat("es-CL",{day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(date+"T12:00:00Z"));
+ if(!groups.length)return null;
+ return <section className="activity-timeline" aria-label="Línea cronológica de actividades">
+  <div className="small">{count} {count===1?"TOQUE":"TOQUES"} · {groups.length} {groups.length===1?"DÍA DE CONTACTO":"DÍAS DE CONTACTO"}</div>
+  <div className="meta">DEL {format(groups[0].date)} AL {format(latest)} · PULSA UNA FECHA PARA VER LOS TOQUES</div>
+  <div className="timeline-scroll" ref={scrollRef} tabIndex={0} aria-label="Fechas de contacto; desplaza para ver el inicio">
+   <div className="timeline-track"><span className="timeline-start">INICIO</span>
+    {groups.map(g=><button key={g.date} type="button" className="timeline-date" aria-pressed={selected===g.date} aria-label={format(g.date)+", "+g.items.length+" toques"} onClick={()=>setSelected(selected===g.date?null:g.date)}>
+     <span className="timeline-dot-wrap"><span className="timeline-dot" style={{width:12+Math.min(g.items.length,8)*3,height:12+Math.min(g.items.length,8)*3}}/></span>
+     <time dateTime={g.date}>{format(g.date)}</time><span className="timeline-count">{g.items.length} {g.items.length===1?"toque":"toques"}</span>
+    </button>)}<span className="timeline-arrow" aria-hidden="true">→</span>
+   </div>
+  </div>
+  {active&&<div className="timeline-detail" aria-live="polite"><div className="row"><strong>{format(active.date)} // {active.items.length} TOQUES</strong><button type="button" className="btn dim" onClick={()=>setSelected(null)}>CERRAR</button></div>{active.items.map(a=><div key={a.id}><div className="small">{a.tipo}</div><p>{a.nota||"SIN NOTA"}</p></div>)}</div>}
+ </section>;
+}
+
 function App(){
  const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalState]=useState(false); const [q,setQ]=useState("");
  const [dialog,setDialog]=useState(null);
@@ -827,7 +870,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.62 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.63 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1120,7 +1163,7 @@ function App(){
        <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form></>
     })():modal.viewContact?(()=>{
-      const c=db.contactos.find(x=>x.id===modal.viewContact); const acts=db.actividades.filter(a=>a.contactoId===c.id).slice(0,8);
+      const c=db.contactos.find(x=>x.id===modal.viewContact); const allActs=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,8);
       const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
@@ -1173,7 +1216,8 @@ function App(){
        {tasks.length?tasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{allActs.length}</span></div>
+       <ActivityTimeline key={modal.viewContact||modal.viewOpp} activities={allActs}/>
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():(modal.newOpp||modal.editOpp)?(()=>{
@@ -1196,7 +1240,7 @@ function App(){
     })():modal.viewOpp?(()=>{
       const o=db.oportunidades.find(x=>x.id===modal.viewOpp), e=emp(o.empresaId);
       const cs=(o.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
-      const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
+      const allActs=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,10);
       const notes=(db.notas||[]).filter(n=>n.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const oppTasks=(db.tareas||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
@@ -1256,7 +1300,8 @@ function App(){
        {oppTasks.length?oppTasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{allActs.length}</span></div>
+       <ActivityTimeline key={modal.viewContact||modal.viewOpp} activities={allActs}/>
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():modal.viewCompany?(()=>{
@@ -1317,7 +1362,8 @@ function App(){
        {ts.length?ts.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{ns.length}</span></div>
        {ns.length?ns.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; ACTIVIDAD</span><span>{acts.length}</span></div>
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
+       <ActivityTimeline key={e.id} activities={acts}/>
        {acts.length?acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD.</div>}
       </>
     })():modal.viewRadar?(()=>{
