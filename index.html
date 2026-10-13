@@ -6,7 +6,7 @@
 <title>Ninja Sales Terminal</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -193,18 +193,73 @@ function localISODate(d=new Date()){
  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
 }
-const today=localISODate();
+const APP_TIME_ZONE="America/Santiago";
+function businessISODate(d=new Date()){
+ const parts=new Intl.DateTimeFormat("en-US",{timeZone:APP_TIME_ZONE,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
+ const get=t=>parts.find(p=>p.type===t).value;
+ return `${get("year")}-${get("month")}-${get("day")}`;
+}
+function shiftISODate(date,days){
+ const d=new Date(date+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);
+}
+function activityModal(value){
+ return !!value && !Object.keys(value).some(k=>k!=="editActivity" && /^(view|new|edit|status|quick)/.test(k));
+}
+function calendarWeeks(activities,today){
+ const weekday=new Date(today+"T12:00:00Z").getUTCDay();
+ const monday=shiftISODate(today,-((weekday+6)%7));
+ return [3,2,1,0].map(back=>{
+  const start=shiftISODate(monday,-back*7),end=back===0?today:shiftISODate(start,6);
+  return {label:back===0?"ESTA SEM":`SEM -${back}`,start,end,items:activities.filter(a=>a.fecha>=start&&a.fecha<=end)};
+ });
+}
 function load(){
  try{
   const x=JSON.parse(localStorage.getItem(KEY))||SEED;
   return {...x,tareas:Array.isArray(x.tareas)?x.tareas:[],notas:Array.isArray(x.notas)?x.notas:[],licitaciones:Array.isArray(x.licitaciones)?x.licitaciones:[],iniciativas:Array.isArray(x.iniciativas)?x.iniciativas:[]};
  }catch{return {...SEED,tareas:[],notas:[],licitaciones:[],iniciativas:[]}}
 }
-function daysSince(d){return Math.floor((new Date(today)-new Date(d))/86400000)}
+function daysSince(d){return Math.floor((new Date(businessISODate())-new Date(d))/86400000)}
 function App(){
- const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModal]=useState(false); const [q,setQ]=useState("");
- const [dataMsg,setDataMsg]=useState("");
+ const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalState]=useState(false); const [q,setQ]=useState("");
  const [dialog,setDialog]=useState(null);
+ const [today,setToday]=useState(businessISODate);
+ const activityOrigin=React.useRef(null), pendingScroll=React.useRef(null), modalRef=React.useRef(null);
+ const activitySaving=React.useRef(false);
+ const [savingActivity,setSavingActivity]=useState(false);
+ function setModal(next){
+  if(activitySaving.current)return;
+  if(activityModal(next)&&!activityModal(modal)){
+   activityOrigin.current={modal, x:window.scrollX,y:window.scrollY,scroll:modalRef.current?.scrollTop||0,focus:document.activeElement};
+   pendingScroll.current={scroll:0};
+  }else if(!next&&activityModal(modal)&&activityOrigin.current){
+   const origin=activityOrigin.current;activityOrigin.current=null;
+   pendingScroll.current=origin;setModalState(origin.modal);return;
+  }
+  setModalState(next);
+ }
+ React.useLayoutEffect(()=>{
+  const origin=pendingScroll.current;if(!origin)return;pendingScroll.current=null;
+  if(origin.focus?.isConnected)origin.focus.focus({preventScroll:true});
+  if(origin.y!==undefined)window.scrollTo(origin.x,origin.y);
+  if(modalRef.current)modalRef.current.scrollTop=origin.scroll;
+ },[modal]);
+ useEffect(()=>{
+  const refresh=()=>setToday(businessISODate());
+  const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);
+  return ()=>{clearInterval(timer);window.removeEventListener("focus",refresh)};
+ },[]);
+ useEffect(()=>{
+  const onEscape=e=>{
+   if(e.key!=="Escape")return;
+   if(dialog){e.preventDefault();setDialog(null);return}
+   if(modal){e.preventDefault();setModal(false)}
+  };
+  window.addEventListener("keydown",onEscape);
+  return ()=>window.removeEventListener("keydown",onEscape);
+ },[modal,dialog]);
+ const [dataMsg,setDataMsg]=useState("");
+
  const [lastBackup,setLastBackup]=useState(localStorage.getItem(KEY+"_lastBackup")||"");
  const [session,setSession]=useState(null), [authReady,setAuthReady]=useState(false);
  const [authMsg,setAuthMsg]=useState(""), [cloudStatus,setCloudStatus]=useState("COMPROBANDO...");
@@ -331,7 +386,7 @@ function App(){
  // show only the task here. The opportunity remains available in PIPELINE and from the task itself.
  const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o));
- const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
+ const next7=shiftISODate(today,7);
  const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const reconectar=[...db.contactos].filter(c=>c.ultimo && daysSince(c.ultimo)>=45 && (!c.proximo || c.proximo<=next7)).sort((a,b)=>{
    const score=x=>(x.potencial==="Alto"?100:x.potencial==="Medio"?50:0)+Math.min(daysSince(x.ultimo),365);
@@ -341,8 +396,8 @@ function App(){
 
  const tenderRenewals=(db.licitaciones||[]).map(t=>({...t,renewalDate:minusDaysISO(t.fin,t.prepararDias)})).filter(t=>t.fin&&t.renewalDate&&t.renewalDate<=next7&&t.fin>=today).sort((a,b)=>a.renewalDate.localeCompare(b.renewalDate));
  const initiativeStatuses=(db.iniciativas||[]).filter(i=>i.estado==="Activa"&&i.proximoStatus&&i.proximoStatus<=next7).sort((a,b)=>a.proximoStatus.localeCompare(b.proximoStatus));
- // PULSO COMERCIAL // rolling 30 days + four 7-day rhythm buckets.
- const pulseStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-29);return localISODate(d)})();
+ // PULSO COMERCIAL // rolling 30 days + Monday-based calendar weeks (Santiago).
+ const pulseStart=shiftISODate(today,-29);
  const pulseActivities=(db.actividades||[]).filter(a=>a.fecha&&a.fecha>=pulseStart&&a.fecha<=today);
  const pulseContactIds=[...new Set(pulseActivities.map(a=>a.contactoId).filter(Boolean))];
  const pulseCompanyIds=[...new Set(pulseActivities.map(a=>a.empresaId).filter(Boolean))];
@@ -353,15 +408,10 @@ function App(){
  const pulseOverdue=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha<today);
  const pulseUpcoming=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha>=today&&t.fecha<=next7);
  const pulseNewOpps=(db.oportunidades||[]).filter(o=>{
-   const created=(o.createdAt||"").slice(0,10); return created&&created>=pulseStart&&created<=today;
+   const created=o.createdAt?businessISODate(new Date(o.createdAt)):""; return created&&created>=pulseStart&&created<=today;
  });
  const pulsePct=pulseContacts.length?Math.round(pulseWithNext.length*100/pulseContacts.length):0;
- const pulseWeeks=[3,2,1,0].map(back=>{
-   const end=new Date();end.setHours(0,0,0,0);end.setDate(end.getDate()-back*7);
-   const start=new Date(end);start.setDate(start.getDate()-6);
-   const sy=localISODate(start),ey=localISODate(end);
-   return {label:back===0?"ESTA SEM":`SEM -${back}`,start:sy,end:ey,items:pulseActivities.filter(a=>a.fecha>=sy&&a.fecha<=ey)};
- });
+ const pulseWeeks=calendarWeeks(db.actividades||[],today);
  const pulseMax=Math.max(1,...pulseWeeks.map(w=>w.items.length));
  const pulseInitiatives=(db.iniciativas||[]).map(i=>{const acts=pulseActivities.filter(a=>a.iniciativaId===i.id);const opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id);return {i,acts,opps}}).filter(x=>x.acts.length||x.opps.length).sort((a,b)=>b.acts.length-a.acts.length);
  const pulseUnattributed=pulseActivities.filter(a=>!a.iniciativaId);
@@ -415,7 +465,10 @@ function App(){
   });
  }
  async function saveActivity(ev){
-  ev.preventDefault(); const f=new FormData(ev.currentTarget);
+  ev.preventDefault(); if(activitySaving.current)return;
+  activitySaving.current=true;setSavingActivity(true);
+  try{
+  const f=new FormData(ev.currentTarget);
   const contactoId=f.get("contactoId")||null,oportunidadId=f.get("oportunidadId")||null;
   const empresaId=f.get("activityEmpresaId")||null;
   const editing=modal.editActivity?db.actividades.find(a=>a.id===modal.editActivity):null;
@@ -447,7 +500,9 @@ function App(){
     else ({data,error}=await sb.from("tareas").insert({...taskRow,user_id:session.user.id}).select().single());
     if(await cloudError(error))return;changes.push(["tareas",data]);
   }
-  applyCloudRows(changes);setModal(false);
+  applyCloudRows(changes);activitySaving.current=false;setModal(false);
+  }catch(error){showInfo("ERROR AL GUARDAR ACTIVIDAD",error.message)}
+  finally{activitySaving.current=false;setSavingActivity(false)}
  }
  function deleteActivity(id){
   askConfirm("ELIMINAR ACTIVIDAD","Se eliminará el registro histórico. La próxima acción de la oportunidad no será modificada.",async()=>{
@@ -772,7 +827,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.61 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.62 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -992,7 +1047,7 @@ function App(){
   <nav className="nav">
    {[["hoy","F1","HOY"],["pulse","F2","PULSO"],["red","F3","RED"],["pipe","F4","PIPE"],["emp","F5","EMP"],["radar","F6","RADAR"],["log","F7","LOG"],["data","F8","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
   </nav>
-  {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+  {modal&&<div className="overlay" onClick={()=>setModal(false)}><div ref={modalRef} className="modal" onClick={e=>e.stopPropagation()}>
     {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
        <button className="btn primary" onClick={()=>setModal({newTask:true})}>✓ TAREA</button>
@@ -1321,8 +1376,8 @@ function App(){
         ?db.contactos.filter(c=>c.empresaId===modal.company)
         :db.contactos;
       return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
-      <form onSubmit={saveActivity}>
-       <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Email</option><option>Nota</option></select>
+      <form onSubmit={saveActivity} aria-busy={savingActivity}><fieldset disabled={savingActivity} style={{border:0,padding:0,margin:0,minWidth:0}}>
+       <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Mensaje de LinkedIn</option><option>Email</option><option>Nota</option></select>
        <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={autoCompanyId}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
        <label>CONTACTO</label><select name="contactoId" defaultValue={contextContactId}><option value="">-- SIN CONTACTO --</option>{activityContacts.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
        {activityOppContext&&<div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>{activityContacts.length?`${activityContacts.length} CONTACTO${activityContacts.length===1?"":"S"} ASOCIADO${activityContacts.length===1?"":"S"} A ESTA OPORTUNIDAD`:"ESTA OPORTUNIDAD NO TIENE CONTACTOS ASOCIADOS"}</div>}
@@ -1334,7 +1389,7 @@ function App(){
        <label>FECHA PRÓXIMA ACCIÓN</label><input name="proximo" type="date" defaultValue={a?linkedOpp?.fecha||"":""}/>
        {a&&<div className="card"><label style={{margin:"0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="updateNext" value="yes"/>ACTUALIZAR TAMBIÉN LA PRÓXIMA ACCIÓN DE LA OPORTUNIDAD</label><div className="meta">DESMARCADO = SOLO CORRIGE EL REGISTRO HISTÓRICO.</div></div>}
        <div className="actions"><button className="btn primary" type="submit">{a?"GUARDAR CAMBIOS":"GUARDAR"}</button>{a&&<button className="btn danger" type="button" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
-      </form></>
+      </fieldset></form></>
     })()}</>}
    </div></div>}
   {dialog&&<div className="overlay" style={{zIndex:120}} onClick={()=>setDialog(null)}>
