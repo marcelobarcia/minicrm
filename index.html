@@ -158,6 +158,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .timeline-arrow{flex:0 0 42px;line-height:52px;font-size:30px;position:relative;text-align:center}
 .timeline-date time{display:block;font-size:12px;margin-top:5px}.timeline-count{display:block;font-size:11px;margin-top:4px}
 .timeline-detail{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.timeline-detail p{white-space:pre-wrap;margin:5px 0 12px;overflow-wrap:anywhere}
+.pulse-types{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.pulse-type{display:inline-flex;align-items:center;gap:7px;min-height:42px}.pulse-type-icon{font-size:18px;line-height:1}.pulse-type-count{font-size:17px}.pulse-type[aria-pressed="true"]{background:var(--amber);color:#080600}.pulse-filter-summary{margin-bottom:12px}
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -315,7 +316,9 @@ function App(){
  const [logType,setLogType]=useState("TODAS");
  const [logRange,setLogRange]=useState("30");
  const [logLimit,setLogLimit]=useState(30);
- const [pulseDetail,setPulseDetail]=useState(null);
+ const [pulseDetail,setPulseDetailState]=useState(null);
+ const [pulseType,setPulseType]=useState(null);
+ function setPulseDetail(value){setPulseType(null);setPulseDetailState(value)}
  const [initiativePortfolioFilter,setInitiativePortfolioFilter]=useState("Activa");
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
@@ -870,7 +873,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.63 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.64 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -972,14 +975,21 @@ function App(){
     if(pulseDetail==="initiatives"){
      const all=(db.iniciativas||[]), filtered=all.filter(i=>i.estado===initiativePortfolioFilter);
      const counts={Activa:all.filter(i=>i.estado==="Activa").length,Pausada:all.filter(i=>i.estado==="Pausada").length,Cerrada:all.filter(i=>i.estado==="Cerrada").length};
-     return <div className="pulse-detail">
+         return <div className="pulse-detail">
       <div className="section-title"><span>&gt; INICIATIVAS COMERCIALES</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
       <div className="actions" style={{marginBottom:"10px"}}>{["Activa","Pausada","Cerrada"].map(st=><button key={st} className={`btn ${initiativePortfolioFilter===st?"primary":"dim"}`} onClick={()=>setInitiativePortfolioFilter(st)}>{st.toUpperCase()}S {counts[st]}</button>)}<button className="btn" onClick={()=>setModal({newInitiative:true})}>+ INICIATIVA</button></div>
       {filtered.length?filtered.slice().sort((a,b)=>(a.proximoStatus||"9999-99-99").localeCompare(b.proximoStatus||"9999-99-99")).map(i=>{const acts=(db.actividades||[]).filter(a=>a.iniciativaId===i.id),opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id),moved=(i.cuentas||[]).filter(c=>c.estado&&c.estado!=="Pendiente").length;return <div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{i.tipo} // {emp(i.empresaId)?.nombre||"SIN PARTNER"}</div></div><span className="tag">{i.estado}</span></div><div className="meta">CUENTAS MOVIDAS: {moved}/{(i.cuentas||[]).length} // ACTIVIDADES: {acts.length} // OPORTUNIDADES: {opps.length}<br/>PRÓXIMO STATUS: {i.proximoStatus||"—"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewInitiative:i.id})}>ABRIR →</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button>{i.estado==="Activa"&&<button className="btn dim" onClick={()=>setModal({statusInitiative:i.id})}>STATUS</button>}</div></div>}):<div className="empty">SIN INICIATIVAS {initiativePortfolioFilter.toUpperCase()}S.</div>}
      </div>
     }
+const weekItems=pulseDetail.startsWith("week:")?items:null;
+    const typeCounts=weekItems?[...new Set(weekItems.map(a=>a.tipo||"Otro"))].map(type=>({type,count:weekItems.filter(a=>(a.tipo||"Otro")===type).length})):[];
+    const typeIcons={WhatsApp:"💬",Llamada:"📞",Email:"✉",Reunión:"🤝",Nota:"📝","Mensaje de LinkedIn":"in"};
+    const typeLabels={Llamada:"Llamadas",Reunión:"Reuniones",Nota:"Notas","Mensaje de LinkedIn":"LinkedIn"};
+    const activeType=typeCounts.some(x=>x.type===pulseType)?pulseType:null;
+    if(weekItems&&activeType)items=weekItems.filter(a=>(a.tipo||"Otro")===activeType);
     return <div className="pulse-detail">
      <div className="section-title"><span>&gt; {title}</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
+     {weekItems&&<><div className="pulse-types" role="group" aria-label="Actividades por tipo en la semana">{typeCounts.map(({type,count})=><button key={type} type="button" className="btn pulse-type" aria-pressed={activeType===type} aria-label={type+": "+count+" actividades"} onClick={()=>setPulseType(activeType===type?null:type)}><span className="pulse-type-icon" aria-hidden="true">{typeIcons[type]||"●"}</span><span>{typeLabels[type]||type}</span><strong className="pulse-type-count">{count}</strong></button>)}</div>{activeType&&<div className="small pulse-filter-summary">{items.length} DE {weekItems.length} ACTIVIDADES // {typeLabels[activeType]||activeType} <button className="btn dim" onClick={()=>setPulseType(null)}>VER TODAS</button></div>}</>}
      {pulseDetail.startsWith("initiative:")&&<div className="actions" style={{marginBottom:"8px"}}><button className="btn primary" onClick={()=>setModal({viewInitiative:pulseDetail.split(":")[1]})}>ABRIR INICIATIVA →</button></div>}
      {!items?.length?<div className="empty">SIN REGISTROS.</div>:
       (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?items.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
