@@ -264,6 +264,30 @@ function ActivityTimeline({activities}){
  </section>;
 }
 
+
+function AccountContactLinks({company,contacts,companyName,onSave,onOpen,onActivity}){
+ const [open,setOpen]=React.useState(false),[query,setQuery]=React.useState(""),[draft,setDraft]=React.useState({}),[busy,setBusy]=React.useState(false),[message,setMessage]=React.useState("");
+ const linked=contacts.filter(c=>c.empresaId!==company.id&&(c.cuentasVinculadas||[]).some(x=>x.empresaId===company.id));
+ const candidates=contacts.filter(c=>c.empresaId!==company.id);
+ const role=c=>(c.cuentasVinculadas||[]).find(x=>x.empresaId===company.id)?.rol||"";
+ function begin(){setDraft(Object.fromEntries(linked.map(c=>[c.id,role(c)])));setQuery("");setMessage("");setOpen(true)}
+ const normalize=v=>(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+ const filtered=candidates.filter(c=>normalize(c.nombre+" "+companyName(c.empresaId)+" "+c.cargo).includes(normalize(query))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+ async function submit(ev){ev.preventDefault();if(busy)return;setBusy(true);setMessage("");try{const result=await onSave(company.id,draft);if(result){setOpen(false)}else{setMessage("No se completaron todos los cambios. Los vínculos guardados ya aparecen en la ficha. Puedes reintentar.")}}catch(e){setMessage(e.message)}finally{setBusy(false)}}
+ return <section className="account-links"><div className="section-title"><span>&gt; CONTACTOS VINCULADOS</span><span>{linked.length}</span></div>
+  <div className="small">CONTACTOS DE OTRAS EMPRESAS QUE PARTICIPAN EN ESTA CUENTA.</div>
+  {!open&&<div className="actions"><button type="button" className="btn primary" onClick={begin}>+ VINCULAR CONTACTO EXISTENTE</button></div>}
+  {open&&<form onSubmit={submit} className="card" aria-label="Vincular contactos"><fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0}}>
+   <label>BUSCAR CONTACTO O EMPRESA</label><input aria-label="Buscar contacto o empresa" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Nombre, Oracle, partner..."/>
+   <div className="small">{Object.keys(draft).length} SELECCIONADOS // MARCA VARIOS CONTACTOS Y DEFINE SU ROL EN {company.nombre}.</div>
+   <div style={{maxHeight:320,overflowY:"auto",marginTop:10}}>{filtered.map(c=><div key={c.id} className="card"><label style={{color:"var(--amber)",margin:0}}><input type="checkbox" style={{width:"auto",marginRight:8}} checked={Object.hasOwn(draft,c.id)} onChange={e=>setDraft(prev=>{const next={...prev};if(e.target.checked)next[c.id]=role(c);else delete next[c.id];return next})}/>{c.nombre} // {companyName(c.empresaId)||"SIN EMPRESA"}</label>{Object.hasOwn(draft,c.id)&&<><label>ROL EN ESTA CUENTA</label><input aria-label={"Rol de "+c.nombre} value={draft[c.id]} onChange={e=>setDraft(prev=>({...prev,[c.id]:e.target.value}))} placeholder="Ej: Ejecutivo Oracle, partner, asesor"/></>}</div>)}{!filtered.length&&<div className="empty">SIN CONTACTOS COINCIDENTES.</div>}</div>
+   <div className="actions"><button className="btn primary" type="submit">{busy?"GUARDANDO...":"GUARDAR VÍNCULOS"}</button><button className="btn dim" type="button" onClick={()=>setOpen(false)}>CANCELAR</button></div>
+  </fieldset>{message&&<div role="alert" className="small">{message}</div>}</form>}
+  {linked.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{companyName(c.empresaId)||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ROL EN LA CUENTA: {role(c)||"SIN DEFINIR"}</div><div className="actions"><button type="button" className="btn dim" onClick={()=>onOpen(c.id)}>FICHA</button><button type="button" className="btn" onClick={()=>onActivity(c.id)}>+ ACTIVIDAD</button>{!open&&<button type="button" className="btn dim" onClick={begin}>EDITAR / QUITAR VÍNCULO</button>}</div></div>)}
+  {!linked.length&&!open&&<div className="empty">SIN CONTACTOS EXTERNOS VINCULADOS.</div>}
+ </section>;
+}
+
 function App(){
  const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalState]=useState(false); const [q,setQ]=useState("");
  const [dialog,setDialog]=useState(null);
@@ -339,7 +363,7 @@ function App(){
  function parseExtra(v){try{return v?JSON.parse(v):{}}catch{return {}}}
  function toUI(rows){
   const empresas=rows.empresas.map(x=>({id:x.id,nombre:x.nombre,industria:x.industria||"",estado:x.estado||"Prospecto",potencial:x.potencial||"Medio"}));
-  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
+  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),extra:z,cuentasVinculadas:Array.isArray(z.cuentasVinculadas)?z.cuentasVinculadas.filter(v=>v&&typeof v.empresaId==="string"):[],linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
   const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],iniciativaId:z.iniciativaId||"",proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||"",createdAt:x.created_at}});
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",iniciativaId:x.iniciativa_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
@@ -415,6 +439,23 @@ function App(){
   });
  }
  const emp=id=>db.empresas.find(x=>x.id===id);
+ const contactInAccount=(c,id)=>!!id&&(c.empresaId===id||(c.cuentasVinculadas||[]).some(v=>v.empresaId===id));
+ async function saveAccountLinks(companyId,draft){
+  const candidates=db.contactos.filter(c=>c.empresaId!==companyId);
+  try{
+   for(const c of candidates){
+    const existing=(c.cuentasVinculadas||[]).find(v=>v.empresaId===companyId),selected=Object.hasOwn(draft,c.id),rol=(draft[c.id]||"").trim();
+    if((!existing&&!selected)||(existing&&selected&&(existing.rol||"")===rol))continue;
+    const {data:current,error:readError}=await sb.from("contactos").select("*").eq("id",c.id).single();
+    if(readError)throw readError;
+    const extra=parseExtra(current.observaciones),links=(Array.isArray(extra.cuentasVinculadas)?extra.cuentasVinculadas:[]).filter(v=>v&&v.empresaId!==companyId);
+    if(selected)links.push({empresaId:companyId,rol});
+    const {data,error}=await sb.from("contactos").update({observaciones:JSON.stringify({...extra,cuentasVinculadas:links})}).eq("id",c.id).select().single();
+    if(error)throw error;applyCloudRows([["contactos",data]]);
+   }
+   return true;
+  }catch(error){showInfo("ERROR AL GUARDAR VÍNCULOS",error.message);return false}
+ }
  const norm=v=>(v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
  const gs=norm(globalSearch.trim());
  const globalResults=gs.length<2?[]:[
@@ -567,7 +608,7 @@ function App(){
     estado:f.get("estado"),potencial:f.get("potencial"),intereses:(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean).join("|||"),
     ultimo_contacto:f.get("ultimo")||today,proximo_contacto:f.get("proximo")||null,
     reporta_a_id:f.get("reportaA")||null,rol_decision:f.get("rolDecision")||"Sin definir",posicion:f.get("posicion")||"Desconocida",
-    observaciones:JSON.stringify({linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
+    observaciones:JSON.stringify({...((modal.editContact?db.contactos.find(c=>c.id===modal.editContact)?.extra:null)||{}),linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
   const q=(modal.editContact?sb.from("contactos").update(row).eq("id",modal.editContact):sb.from("contactos").insert({...row,user_id:session.user.id})).select().single();
   const {data,error}=await q;if(await cloudError(error))return;applyCloudRows([["contactos",data]]);setModal(false);
  }
@@ -821,7 +862,7 @@ function App(){
   const [companyId,setCompanyId]=React.useState(initialCompany||"");
   const [contactId,setContactId]=React.useState(initialContact||"");
   const [oppId,setOppId]=React.useState(initialOpp||"");
-  const contacts=companyId?db.contactos.filter(c=>c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
+  const contacts=companyId?db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const opps=companyId?db.oportunidades.filter(o=>o.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const chooseCompany=id=>{setCompanyId(id);if(!db.contactos.some(c=>c.id===contactId&&c.empresaId===id))setContactId("");if(!db.oportunidades.some(o=>o.id===oppId&&o.empresaId===id))setOppId("");};
   const chooseContact=id=>{setContactId(id);const c=id?db.contactos.find(x=>x.id===id):null;if(c?.empresaId&&c.empresaId!==companyId){setCompanyId(c.empresaId);setOppId("");}};
@@ -837,7 +878,7 @@ function App(){
   const [companyId,setCompanyId]=React.useState(inferredCompany);
   const [contactId,setContactId]=React.useState(initialContact||"");
   const [oppId,setOppId]=React.useState(initialOpp||"");
-  const contacts=companyId?db.contactos.filter(c=>c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
+  const contacts=companyId?db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const opps=companyId?db.oportunidades.filter(o=>o.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const chooseCompany=id=>{setCompanyId(id);if(!db.contactos.some(c=>c.id===contactId&&c.empresaId===id))setContactId("");if(!db.oportunidades.some(o=>o.id===oppId&&o.empresaId===id))setOppId("");};
   return <>
@@ -847,17 +888,17 @@ function App(){
   </>;
  };
  const OpportunityContactPicker=({o,selected})=>{
-  const [companyId,setCompanyId]=React.useState(o.empresaId||"");
+  const [companyId,setCompanyId]=React.useState(o.empresaId||modal.company||"");
   const [showExternal,setShowExternal]=React.useState(false);
-  const companyContacts=db.contactos.filter(c=>companyId&&c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-  const externalSelected=db.contactos.filter(c=>selected.includes(c.id)&&c.empresaId!==companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-  const externalAvailable=db.contactos.filter(c=>c.empresaId!==companyId&&!selected.includes(c.id)).sort((a,b)=>((emp(a.empresaId)?.nombre||"").localeCompare(emp(b.empresaId)?.nombre||"","es")||a.nombre.localeCompare(b.nombre,"es")));
+  const companyContacts=db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalSelected=db.contactos.filter(c=>selected.includes(c.id)&&!contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalAvailable=db.contactos.filter(c=>!contactInAccount(c,companyId)&&!selected.includes(c.id)).sort((a,b)=>((emp(a.empresaId)?.nombre||"").localeCompare(emp(b.empresaId)?.nombre||"","es")||a.nombre.localeCompare(b.nombre,"es")));
   return <>
    <label>EMPRESA *</label><select name="empresaId" required value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
    <label>CONTACTOS ASOCIADOS</label>
    <div className="card">
-    <div className="small" style={{marginBottom:"7px"}}>{companyId?`CONTACTOS DE ${emp(companyId)?.nombre||"LA EMPRESA"}`:"SELECCIONA UNA EMPRESA"}</div>
-    {companyContacts.length?companyContacts.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre}</label>):<span className="small">{companyId?"SIN CONTACTOS DE ESTA EMPRESA.":"—"}</span>}
+    <div className="small" style={{marginBottom:"7px"}}>{companyId?`CONTACTOS PROPIOS Y VINCULADOS A ${emp(companyId)?.nombre||"LA EMPRESA"}`:"SELECCIONA UNA EMPRESA"}</div>
+    {companyContacts.length?companyContacts.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre}{c.empresaId!==companyId?` // ${emp(c.empresaId)?.nombre||"SIN EMPRESA"} // VINCULADO`:""}</label>):<span className="small">{companyId?"SIN CONTACTOS DE ESTA EMPRESA.":"—"}</span>}
     {externalSelected.length>0&&<><hr/><div className="small" style={{marginBottom:"7px"}}>CONTACTOS EXTERNOS ASOCIADOS</div>{externalSelected.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={true}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>)}</>}
     <div className="actions" style={{marginTop:"9px"}}><button className="btn dim" type="button" onClick={()=>setShowExternal(v=>!v)}>{showExternal?"CERRAR CONTACTOS EXTERNOS":"+ AGREGAR CONTACTO EXTERNO"}</button></div>
     {showExternal&&<div style={{marginTop:"8px",borderTop:"1px solid var(--line)",paddingTop:"8px"}}><div className="small" style={{marginBottom:"7px"}}>OTRAS EMPRESAS</div>{externalAvailable.length?externalAvailable.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>):<span className="small">SIN OTROS CONTACTOS DISPONIBLES.</span>}</div>}
@@ -873,7 +914,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.64 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.65 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1226,6 +1267,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        {tasks.length?tasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
+       {modal.viewContact&&(c.cuentasVinculadas||[]).some(v=>emp(v.empresaId))&&<><hr/><div className="section-title"><span>&gt; CUENTAS VINCULADAS</span></div>{c.cuentasVinculadas.filter(v=>emp(v.empresaId)).map(v=><div className="card" key={v.empresaId}><div className="title">{emp(v.empresaId)?.nombre}</div><div className="meta">{v.rol||"SIN ROL DEFINIDO"}</div><button className="btn dim" onClick={()=>setModal({viewCompany:v.empresaId})}>VER CUENTA →</button></div>)}</>}
        <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{allActs.length}</span></div>
        <ActivityTimeline key={modal.viewContact||modal.viewOpp} activities={allActs}/>
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
@@ -1337,6 +1379,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        </div>
        <hr/><div className="section-title"><span>&gt; CONTACTOS</span><span>{cs.length}</span></div>
        {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial} // {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
+       <hr/><AccountContactLinks key={e.id} company={e} contacts={db.contactos} companyName={id=>emp(id)?.nombre||""} onSave={saveAccountLinks} onOpen={id=>setModal({viewContact:id})} onActivity={id=>setModal({company:e.id,contact:id})}/>
        <hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{cs.length} PERSONAS</span></div>
        <div className="org-legend">JERARQUÍA REGISTRADA // TOCA UNA PERSONA PARA ABRIR SU FICHA</div>
        {cs.length?(()=>{
@@ -1429,7 +1472,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
       const activityContacts=activityOppContext
        ?(activityOppContext.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean)
        :modal.company
-        ?db.contactos.filter(c=>c.empresaId===modal.company)
+        ?db.contactos.filter(c=>contactInAccount(c,modal.company))
         :db.contactos;
       return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <form onSubmit={saveActivity} aria-busy={savingActivity}><fieldset disabled={savingActivity} style={{border:0,padding:0,margin:0,minWidth:0}}>
