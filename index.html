@@ -211,6 +211,7 @@ const SEED={
  ]
 };
 const KEY="ataway_minicrm_v01";
+const CLOUD_TABLES=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar","licitaciones","iniciativas"];
 function localISODate(d=new Date()){
  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
@@ -365,6 +366,18 @@ function App(){
  const [cloudCounts,setCloudCounts]=useState(null);
  const [cloudReady,setCloudReady]=useState(false);
  const [cloudLoaded,setCloudLoaded]=useState(false);
+ const [liveStatus,setLiveStatus]=useState("CONECTANDO"),[syncPending,setSyncPending]=useState(false);
+ const liveControl=React.useRef({blocked:false,user:null,revision:0,loading:false,pending:false,schedule:null});
+ const cloudScrollRestore=React.useRef(null);
+ liveControl.current.user=session?.user?.id||null;
+ liveControl.current.blocked=!!dialog||!!(modal&&(activityModal(modal)||Object.keys(modal).some(k=>/^(new|edit|status)/.test(k))));
+ function syncBlocked(){return liveControl.current.blocked||activitySaving.current||!!document.querySelector('.account-links form')}
+ React.useLayoutEffect(()=>{
+  const pos=cloudScrollRestore.current;if(!pos)return;cloudScrollRestore.current=null;
+  window.scrollTo(pos.x,pos.y);if(modalRef.current)modalRef.current.scrollTop=pos.modal;
+ },[db]);
+ useEffect(()=>{if(liveControl.current.pending&&!syncBlocked())liveControl.current.schedule?.()},[modal,dialog,db]);
+
  const [migrating,setMigrating]=useState(false);
  const [companySearch,setCompanySearch]=useState("");
  const [globalSearch,setGlobalSearch]=useState("");
@@ -410,6 +423,7 @@ function App(){
   rows[table]=[row]; return toUI(rows)[table][0];
  }
  function applyCloudRows(changes){
+  liveControl.current.revision++;
   setDb(prev=>{
    const next={...prev};
    for(const [table,row] of changes){
@@ -419,27 +433,57 @@ function App(){
    return next;
   });
  }
- async function loadCloud(){
-  if(!session)return;
-  setCloudStatus("SINCRONIZANDO...");
+ async function loadCloud({background=false}={}){
+  const control=liveControl.current,uid=session?.user?.id;
+  if(!uid||control.loading)return false;
+  if(background&&(syncBlocked()||document.hidden)){control.pending=true;if(!syncBlocked())setSyncPending(true);return false}
+  control.loading=true;const revision=control.revision;
+  if(!background)setCloudStatus("SINCRONIZANDO...");
   try{
-   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar","licitaciones","iniciativas"], rows={}, counts={};
-   for(const t of names){
-    const {data,error}=await sb.from(t).select("*").order("created_at",{ascending:true});
-    if(error)throw error; rows[t]=data||[];counts[t]=rows[t].length;
-   }
-   setCloudCounts(counts);
-   const total=Object.values(counts).reduce((a,b)=>a+b,0);
+   const results=await Promise.all(CLOUD_TABLES.map(t=>sb.from(t).select("*").order("created_at",{ascending:true})));
+   if(control.user!==uid)return false;
+   const rows={},counts={};results.forEach((r,i)=>{if(r.error)throw r.error;rows[CLOUD_TABLES[i]]=r.data||[];counts[CLOUD_TABLES[i]]=rows[CLOUD_TABLES[i]].length});
+   if(background&&(syncBlocked()||control.revision!==revision)){control.pending=true;if(!syncBlocked())setSyncPending(true);return false}
    const fresh=toUI(rows);
-   setDb(fresh);
-   localStorage.setItem(KEY,JSON.stringify(fresh));
-   localStorage.setItem(KEY+"_cloud_migrated","1");
-   setCloudReady(true);
-   setCloudLoaded(true);
-   setCloudStatus("CONECTADO");
-  }catch(e){setCloudStatus("ERROR: "+e.message);}
+   if(background)cloudScrollRestore.current={x:window.scrollX,y:window.scrollY,modal:modalRef.current?.scrollTop||0};
+   setDb(fresh);setCloudCounts(counts);localStorage.setItem(KEY,JSON.stringify(fresh));localStorage.setItem(KEY+"_cloud_migrated","1");
+   setCloudReady(true);setCloudLoaded(true);setCloudStatus("CONECTADO");
+   if(control.revision===revision){control.pending=false;setSyncPending(false)}
+   return true;
+  }catch(e){if(control.user===uid){if(!background)setCloudStatus("ERROR: "+e.message);else{control.pending=true;setSyncPending(true)}}return false}
+  finally{control.loading=false}
  }
- useEffect(()=>{if(session)loadCloud();else{setCloudStatus("SIN SESIÓN");setCloudCounts(null);setCloudReady(false)}},[session]);
+ useEffect(()=>{if(session)loadCloud();else{setCloudStatus("SIN SESIÓN");setCloudCounts(null);setCloudReady(false);setCloudLoaded(false)}},[session?.user?.id]);
+ useEffect(()=>{
+  const uid=session?.user?.id;if(!uid)return;
+  let disposed=false,timer=null,subscribed=false;
+  const control=liveControl.current;
+  function schedule(){
+   if(disposed)return;
+   control.pending=true;if(!syncBlocked())setSyncPending(true);clearTimeout(timer);
+   timer=setTimeout(async()=>{
+    if(disposed||control.user!==uid||syncBlocked()||document.hidden||control.loading)return;
+    await loadCloud({background:true});
+   },700);
+  }
+  control.schedule=schedule;
+  const changed=()=>{if(disposed)return;control.revision++;schedule()};
+  let channel=sb.channel("minicrm-live-"+uid);
+  for(const table of CLOUD_TABLES){
+   for(const event of ["INSERT","UPDATE"])channel=channel.on("postgres_changes",{event,schema:"public",table,filter:"user_id=eq."+uid},changed);
+   // DELETE cannot be filtered by owner. Treat only as an invalidation; refetch through SELECT/RLS, never apply its payload.
+   channel=channel.on("postgres_changes",{event:"DELETE",schema:"public",table},changed);
+  }
+  channel.subscribe(status=>{
+   if(disposed)return;subscribed=status==="SUBSCRIBED";if(!syncBlocked())setLiveStatus(subscribed?"EN VIVO":"RESPALDO AUTOMÁTICO");
+   if(subscribed)schedule();
+  });
+  const visible=()=>{if(!document.hidden)schedule()};
+  window.addEventListener("focus",visible);window.addEventListener("online",visible);document.addEventListener("visibilitychange",visible);
+  // Low-frequency recovery while disconnected or while a deferred refresh is waiting for an inline form to close.
+  const fallback=setInterval(()=>{if(!document.hidden&&(!subscribed||control.pending))schedule()},30000);
+  return ()=>{disposed=true;clearTimeout(timer);clearInterval(fallback);window.removeEventListener("focus",visible);window.removeEventListener("online",visible);document.removeEventListener("visibilitychange",visible);if(control.schedule===schedule)control.schedule=null;control.pending=false;sb.removeChannel(channel)};
+ },[session?.user?.id]);
  async function login(ev){
   ev.preventDefault();setAuthMsg("CONECTANDO...");
   const f=new FormData(ev.currentTarget);
@@ -945,7 +989,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.68 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.69 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -955,6 +999,7 @@ function App(){
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   <div className="global-search-wrap">
+   <div className="small" role="status" style={{marginBottom:8}}>SYNC // {liveStatus}{syncPending?" · CAMBIOS PENDIENTES" : ""}</div>
    <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, iniciativa, oportunidad, trigger o nota...  [ / ]" /></div>
    {globalSearch&&<div className="global-search-results">
     {globalSearch.trim().length<2?<div className="empty">ESCRIBE AL MENOS 2 CARACTERES.</div>:globalResults.length?<>
@@ -1247,7 +1292,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form></>
     })():modal.viewContact?(()=>{
-      const c=db.contactos.find(x=>x.id===modal.viewContact); const allActs=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,8);
+      const c=db.contactos.find(x=>x.id===modal.viewContact); if(!c)return <div className="empty">CONTACTO NO DISPONIBLE.</div>; const allActs=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,8);
       const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
@@ -1390,7 +1435,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():modal.viewCompany?(()=>{
-      const e=db.empresas.find(x=>x.id===modal.viewCompany);
+      const e=db.empresas.find(x=>x.id===modal.viewCompany); if(!e)return <div className="empty">EMPRESA NO DISPONIBLE.</div>;
       const cs=db.contactos.filter(c=>c.empresaId===e.id);
       const mapContacts=db.contactos.filter(c=>contactInAccount(c,e.id));
       const os=db.oportunidades.filter(o=>o.empresaId===e.id);
