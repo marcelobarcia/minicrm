@@ -160,6 +160,12 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .timeline-detail{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.timeline-detail p{white-space:pre-wrap;margin:5px 0 12px;overflow-wrap:anywhere}
 .pulse-types{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.pulse-type{display:inline-flex;align-items:center;gap:7px;min-height:42px}.pulse-type-icon{font-size:18px;line-height:1}.pulse-type-count{font-size:17px}.pulse-type[aria-pressed="true"]{background:var(--amber);color:#080600}.pulse-filter-summary{margin-bottom:12px}
 .org-tree .org-external::before,.org-tree .org-external::after{border-top-style:dashed;border-left-style:dashed;border-right-style:dashed}.org-tree .org-external>.org-node{border-style:dashed;position:relative}.org-tree .org-external>.org-node::before{content:"";position:absolute;left:50%;top:-20px;height:18px;border-left:1px dashed var(--amber)}.org-account{cursor:default}.org-external-label{color:var(--amber);font-size:10px;margin-top:5px}
+
+.app.desktop-side{max-width:440px;margin-left:auto;margin-right:0;padding:10px 10px 122px;font-size:14px}
+.desktop-side .header-hero{display:none}.desktop-side .header-brandline{grid-template-columns:1fr auto;gap:8px}.desktop-side header{padding:10px}.desktop-side .header-title{font-size:15px}.desktop-side .header-sub{font-size:10px}
+.desktop-side .nav{width:min(440px,100%);right:0;left:auto;transform:none;grid-template-columns:repeat(4,minmax(0,1fr))}.desktop-side .nav button{min-width:0;padding:8px 4px;font-size:11px}
+.desktop-side .section{padding:9px}.desktop-side .card{padding:9px}.desktop-side .btn{padding:8px;font-size:12px}.desktop-side .section-title{gap:8px;flex-wrap:wrap;font-size:13px}.desktop-side .row{flex-wrap:wrap}.desktop-side .stats{gap:5px}.desktop-side .stat{padding:7px 3px}.desktop-side .pipeline{display:block}.desktop-side .pipeline>div{margin-bottom:10px}.desktop-side .global-search-input{min-width:0}
+.desktop-side .overlay{left:auto;width:min(440px,100%);right:0}.desktop-side .modal{width:100%;max-width:100%;padding:12px}.desktop-side .fab{right:16px;bottom:105px;left:auto;transform:none}.desktop-side .userline{overflow-wrap:anywhere}.desktop-side .side-hint{margin:8px 0 0;line-height:1.5}.desktop-side .pulse-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -289,9 +295,33 @@ function AccountContactLinks({company,contacts,companyName,onSave,onOpen,onActiv
  </section>;
 }
 
+function desktopSideAvailable(){
+ return window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches&&!/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)&&screen.availWidth>=800;
+}
 function App(){
  const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalState]=useState(false); const [q,setQ]=useState("");
  const [dialog,setDialog]=useState(null);
+ const [desktopCapable,setDesktopCapable]=useState(desktopSideAvailable);
+ const [sideMode,setSideMode]=useState(()=>localStorage.getItem(KEY+"_desktop_side")==="1");
+ const sideActive=desktopCapable&&sideMode;
+ const sideWindowOrigin=React.useRef(null);
+ useEffect(()=>{
+  const media=window.matchMedia("(any-hover: hover) and (any-pointer: fine)"),update=()=>setDesktopCapable(desktopSideAvailable());
+  media.addEventListener("change",update);return ()=>media.removeEventListener("change",update);
+ },[]);
+ function toggleSideMode(){
+  const next=!sideActive;setSideMode(next);localStorage.setItem(KEY+"_desktop_side",next?"1":"0");
+  const installed=window.matchMedia("(display-mode: standalone)").matches;
+  if(!installed)return;
+  try{
+   if(next){
+    sideWindowOrigin.current={width:window.outerWidth,height:window.outerHeight,x:window.screenX,y:window.screenY};
+    const width=430,height=screen.availHeight;
+    window.resizeTo(width,height);window.moveTo((screen.availLeft||0)+screen.availWidth-width,screen.availTop||0);
+   }else if(sideWindowOrigin.current){const original=sideWindowOrigin.current;window.resizeTo(original.width,original.height);window.moveTo(original.x,original.y);sideWindowOrigin.current=null}
+  }catch{} // Some installed PWA hosts leave window sizing to the OS.
+ }
+
  const [today,setToday]=useState(businessISODate);
  const activityOrigin=React.useRef(null), pendingScroll=React.useRef(null), modalRef=React.useRef(null);
  const activitySaving=React.useRef(false);
@@ -911,15 +941,17 @@ function App(){
    <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
    <div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR</button><button className="btn" onClick={()=>setModal({opp:o.id})}>REGISTRAR</button></div>
  </div>;
- return <div className="app crt">
+ return <div className={`app crt${sideActive?" desktop-side":""}`}>
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.66 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.67 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
    </div>
+   {desktopCapable&&<div className="actions"><button type="button" className={`btn ${sideActive?"primary":"dim"}`} aria-pressed={sideActive} onClick={toggleSideMode}>{sideActive?"VOLVER A MODO NORMAL":"MODO LATERAL"}</button></div>}
+   {sideActive&&<div className="small side-hint">MODO LATERAL · Ajusta el ancho de esta ventana o usa Windows + → para colocarla junto a tus aplicaciones.</div>}
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   <div className="global-search-wrap">
