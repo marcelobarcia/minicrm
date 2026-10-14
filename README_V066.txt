@@ -1,0 +1,1 @@
+V0.66: Mapa de relaciones de Empresa 360 incluye contactos propios y externos vinculados. Externos con líneas y borde punteados, empresa de origen y rol en cuenta; propios con líneas continuas. Cuenta como raíz. No SQL nuevo. Incluye mejoras anteriores.
