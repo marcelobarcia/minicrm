@@ -1,0 +1,1 @@
+V0.68: modo lateral ocupa todo el ancho de la ventana actual, sin franja vacía izquierda. Navegación y overlays adaptados al mismo ancho. Sin SQL nuevo. Incluye mejoras anteriores.
