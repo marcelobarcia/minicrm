@@ -463,8 +463,8 @@ hr{border-top:1px solid var(--line-soft)}
 
 /* V0.71 — horizontal contact touch timeline */
 .touch-summary{font-size:11px;color:var(--dim);margin:2px 0 8px;letter-spacing:.04em}
-.touch-timeline-wrap{overflow-x:auto;overflow-y:hidden;padding:10px 8px 14px;border:1px solid rgba(255,176,0,.16);border-radius:10px;background:rgba(255,176,0,.025);scrollbar-width:thin}
-.touch-timeline{position:relative;height:112px;margin:0 34px}
+.touch-timeline-wrap{overflow-x:auto;overflow-y:hidden;padding:10px 14px 14px;border:1px solid rgba(255,176,0,.16);border-radius:10px;background:rgba(255,176,0,.025);scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;scroll-snap-type:x proximity}.touch-timeline-wrap::-webkit-scrollbar{display:none;width:0;height:0}
+.touch-timeline{position:relative;height:112px;margin:0;width:100%}
 .touch-axis{position:absolute;left:0;right:0;top:48px;height:2px;background:linear-gradient(90deg,rgba(255,176,0,.22),rgba(255,176,0,.75),rgba(255,176,0,.28))}
 .touch-point{position:absolute;top:0;transform:translateX(-50%);width:104px;height:106px;border:0;background:transparent;color:var(--text);padding:0;cursor:pointer;text-align:center;font:inherit}
 .touch-point:hover .touch-dot,.touch-point:focus-visible .touch-dot{box-shadow:0 0 0 5px rgba(255,176,0,.13),0 0 12px rgba(255,176,0,.35)}
@@ -472,7 +472,7 @@ hr{border-top:1px solid var(--line-soft)}
 .touch-stem{position:absolute;top:25px;left:50%;width:1px;height:23px;background:rgba(255,176,0,.7)}
 .touch-dot{position:absolute;top:43px;left:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,0);background:var(--bg);border:2px solid var(--amber);transition:.15s ease}
 .touch-kind{position:absolute;top:64px;left:-4px;right:-4px;font-size:10px;line-height:1.2;color:var(--text);white-space:normal;text-transform:uppercase}
-@media(max-width:700px){.touch-timeline{height:104px;margin:0 24px}.touch-point{width:92px}.touch-kind{font-size:9px}}
+@media(max-width:700px){.touch-timeline{height:104px;margin:0}.touch-timeline-wrap{padding-left:10px;padding-right:10px}.touch-point{width:92px}.touch-kind{font-size:9px}}
 </style>
 
 </head>
@@ -1041,7 +1041,7 @@ function App(){
   const icon=t=>({"Llamada":"📞","Reunión":"🤝","Email":"✉️","WhatsApp":"💬","LinkedIn":"🔗","Nota":"📝"}[t]||"●");
   const fmt=d=>{if(!d)return "—";const [y,m,day]=(d||"").slice(0,10).split("-");return `${day}/${m}`};
   const latest=xs[xs.length-1];
-  return <><div className="touch-summary">{xs.length} TOQUES // ÚLTIMO {latest?.fecha||"—"} // {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:`${Math.max(640,xs.length*112)}px`}}><div className="touch-axis"/>{xs.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${xs.length===1?50:(idx/(xs.length-1))*100}%`}} title={`${a.fecha||""} // ${a.tipo||""}${a.nota?` // ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>;
+  return <><div className="touch-summary">{xs.length} TOQUES // ÚLTIMO {latest?.fecha||"—"} // {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:xs.length<=5?"100%":`${Math.max(640,xs.length*112)}px`}}><div className="touch-axis"/>{xs.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${xs.length===1?50:6+(idx/(xs.length-1))*88}%`}} title={`${a.fecha||""} // ${a.tipo||""}${a.nota?` // ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>;
  };
  const TriggerRelationFields=({initialCompany,initialContact,initialOpp})=>{
   const [companyId,setCompanyId]=React.useState(initialCompany||"");
@@ -1099,7 +1099,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.77 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.78 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1470,7 +1470,7 @@ function App(){
          const icon=t=>({"Llamada":"📞","Reunión":"🤝","Email":"✉️","WhatsApp":"💬","LinkedIn":"🔗","Nota":"📝"}[t]||"●");
          const fmt=d=>{if(!d)return "—";const [y,m,day]=d.slice(0,10).split("-");return `${day}/${m}`};
          const latest=acts[acts.length-1];
-         return <><div className="touch-summary">{acts.length} TOQUES // ÚLTIMO {latest?.fecha||"—"} // {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:`${Math.max(640,acts.length*112)}px`}}><div className="touch-axis"/>{acts.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${acts.length===1?50:(idx/(acts.length-1))*100}%`}} title={`${a.fecha||""} // ${a.tipo||""}${a.nota?` // ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>
+         return <><div className="touch-summary">{acts.length} TOQUES // ÚLTIMO {latest?.fecha||"—"} // {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:acts.length<=5?"100%":`${Math.max(640,acts.length*112)}px`}}><div className="touch-axis"/>{acts.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${acts.length===1?50:6+(idx/(acts.length-1))*88}%`}} title={`${a.fecha||""} // ${a.tipo||""}${a.nota?` // ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>
        })():<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():(modal.newOpp||modal.editOpp)?(()=>{
