@@ -316,6 +316,51 @@ hr{border-top:1px solid var(--line-soft)}
   .title{font-size:13px}
   .meta,.small{font-size:11px}
 }
+
+/* V0.67 — Search + modal layering/alignment fix.
+   The refined skin's .app>* rule was overriding the search wrapper z-index,
+   allowing the screen below (including + buttons) to paint over results. */
+.app>.global-search-wrap{
+  z-index:70;
+  isolation:isolate;
+}
+.global-search-results{
+  z-index:80;
+  background:#0c0a07;
+  opacity:1;
+}
+.search-group-title{
+  line-height:1.25;
+  margin-top:3px;
+}
+.app>.overlay{
+  z-index:100;
+  isolation:isolate;
+}
+.app>.overlay .modal{
+  position:relative;
+  z-index:101;
+}
+
+.search-hit{
+  min-height:48px;
+  line-height:1.25;
+  padding:9px 8px;
+}
+.search-hit b,.search-hit span{
+  position:static;
+  line-height:1.3;
+}
+.section-title{
+  gap:10px;
+}
+.section-title>span:first-child{
+  min-width:0;
+}
+.section-title>.btn{
+  flex:0 0 auto;
+  align-self:center;
+}
 </style>
 
 </head>
@@ -932,7 +977,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.65 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.67 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1150,10 +1195,10 @@ function App(){
    <hr/><div className="section-title"><span>&gt; TAREAS COMPLETADAS</span><span>{(db.tareas||[]).filter(t=>t.completada).length}</span></div>
    {(db.tareas||[]).filter(t=>t.completada).slice().reverse().map(t=><div className="card" key={t.id}><div className="title">✓ {t.texto}</div><div className="meta">{t.fecha||"SIN FECHA"} // {emp(t.empresaId)?.nombre||""}</div><div className="actions"><button className="btn dim" onClick={()=>toggleTask(t.id)}>REABRIR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>)}
   </div>}
-  <button className="fab" aria-label="Acción rápida" onClick={()=>setModal({quick:true})}>+</button>
-  <nav className="nav">
+  {!modal&&<button className="fab" aria-label="Acción rápida" onClick={()=>setModal({quick:true})}>+</button>}
+  {!modal&&<nav className="nav">
    {[["hoy","F1","HOY"],["pulse","F2","PULSO"],["red","F3","RED"],["pipe","F4","PIPE"],["emp","F5","EMP"],["radar","F6","RADAR"],["log","F7","LOG"],["data","F8","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
-  </nav>
+  </nav>}
   {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
     {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>

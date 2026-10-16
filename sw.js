@@ -1,4 +1,4 @@
-const CACHE="ninja-sales-v065";
+const CACHE="ninja-sales-v067";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./favicon-32.png","./icon-192.png","./icon-512.png","./apple-touch-icon.png","./ninja-header-portrait.png"];
 self.addEventListener("install",e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})))});
 self.addEventListener("activate",e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
