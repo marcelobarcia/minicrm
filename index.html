@@ -317,9 +317,10 @@ hr{border-top:1px solid var(--line-soft)}
   .meta,.small{font-size:11px}
 }
 
-/* V0.67 — Search + modal layering/alignment fix.
-   The refined skin's .app>* rule was overriding the search wrapper z-index,
-   allowing the screen below (including + buttons) to paint over results. */
+/* V0.68 — Search + true viewport modal overlay fix.
+   .app>* gives every direct child position:relative; that was overriding
+   the base .overlay position:fixed and rendering fichas inline below HOY.
+   Re-assert the complete overlay geometry here, after .app>*. */
 .app>.global-search-wrap{
   z-index:70;
   isolation:isolate;
@@ -334,12 +335,30 @@ hr{border-top:1px solid var(--line-soft)}
   margin-top:3px;
 }
 .app>.overlay{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100dvh;
   z-index:100;
   isolation:isolate;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(0,0,0,.76);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  margin:0;
 }
 .app>.overlay .modal{
   position:relative;
   z-index:101;
+  width:min(780px,100%);
+  max-height:92dvh;
+  overflow:auto;
+}
+@supports not (height:100dvh){
+  .app>.overlay{height:100vh}
+  .app>.overlay .modal{max-height:92vh}
 }
 
 .search-hit{
@@ -977,7 +996,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.67 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.68 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
