@@ -190,7 +190,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 }
 
 
-/* V0.73 — Universal search includes tasks.
+/* V0.74 — Universal search includes tasks.
    V0.72 — Fluid portrait / narrow-desktop layout.
    On tall windows and tablets, use the available width instead of locking
    the CRM to the desktop max-width. Wide landscape desktop keeps the
@@ -1032,6 +1032,14 @@ function App(){
  </div></div>;
  if(session&&!cloudLoaded) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM // ATAWAY</div><div className="meta">SINCRONIZANDO DATOS DESDE SUPABASE...</div></div></div>;
  const OrgViewport=({children})=>{const ref=React.useRef(null);React.useEffect(()=>{const el=ref.current;if(el)requestAnimationFrame(()=>{el.scrollLeft=Math.max(0,(el.scrollWidth-el.clientWidth)/2)})},[]);const move=d=>{const el=ref.current;if(el)el.scrollBy({left:d*Math.max(320,el.clientWidth*.72),behavior:"smooth"})};return <div className="org-viewport"><div className="org-nav"><button className="btn dim" onClick={()=>move(-1)}>◀</button><div className="org-hint">DESPLAZAR MAPA</div><button className="btn dim" onClick={()=>move(1)}>▶</button></div><div className="org-scroll" ref={ref}>{children}</div></div>};
+ const TouchTimeline=({activities=[],empty="SIN ACTIVIDAD REGISTRADA."})=>{
+  const xs=(activities||[]).slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+  if(!xs.length)return <div className="empty">{empty}</div>;
+  const icon=t=>({"Llamada":"📞","Reunión":"🤝","Email":"✉️","WhatsApp":"💬","LinkedIn":"🔗","Nota":"📝"}[t]||"●");
+  const fmt=d=>{if(!d)return "—";const [y,m,day]=(d||"").slice(0,10).split("-");return `${day}/${m}`};
+  const latest=xs[xs.length-1];
+  return <><div className="touch-summary">{xs.length} TOQUES // ÚLTIMO {latest?.fecha||"—"} // {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:`${Math.max(640,xs.length*112)}px`}}><div className="touch-axis"/>{xs.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${xs.length===1?50:(idx/(xs.length-1))*100}%`}} title={`${a.fecha||""} // ${a.tipo||""}${a.nota?` // ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>;
+ };
  const TriggerRelationFields=({initialCompany,initialContact,initialOpp})=>{
   const [companyId,setCompanyId]=React.useState(initialCompany||"");
   const [contactId,setContactId]=React.useState(initialContact||"");
@@ -1088,7 +1096,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.73 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.74 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1468,7 +1476,7 @@ function App(){
     })():modal.viewOpp?(()=>{
       const o=db.oportunidades.find(x=>x.id===modal.viewOpp), e=emp(o.empresaId);
       const cs=(o.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
-      const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
+      const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
       const notes=(db.notas||[]).filter(n=>n.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const oppTasks=(db.tareas||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
@@ -1528,8 +1536,9 @@ function App(){
        {oppTasks.length?oppTasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
-       {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
+       <hr/><div className="section-title"><span>&gt; HISTORIAL DE TOQUES</span><span>{acts.length} TOQUES</span></div>
+       <TouchTimeline activities={acts}/>
+       {acts.length>0&&<><div className="section-title" style={{marginTop:"12px"}}><span>&gt; DETALLE RECIENTE</span><span>{Math.min(acts.length,10)}</span></div>{acts.slice(0,10).map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>)}</>}
       </>
     })():modal.viewCompany?(()=>{
       const e=db.empresas.find(x=>x.id===modal.viewCompany);
@@ -1589,8 +1598,9 @@ function App(){
        {ts.length?ts.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{ns.length}</span></div>
        {ns.length?ns.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; ACTIVIDAD</span><span>{acts.length}</span></div>
-       {acts.length?acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD.</div>}
+       <hr/><div className="section-title"><span>&gt; HISTORIAL DE TOQUES</span><span>{acts.length} TOQUES</span></div>
+       <TouchTimeline activities={acts} empty="SIN ACTIVIDAD."/>
+       {acts.length>0&&<><div className="section-title" style={{marginTop:"12px"}}><span>&gt; DETALLE RECIENTE</span><span>{Math.min(acts.length,15)}</span></div>{acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>)}</>}
       </>
     })():modal.viewRadar?(()=>{
       const r=(db.radar||[]).find(x=>x.id===modal.viewRadar);if(!r)return <div className="empty">RADAR NO ENCONTRADO.</div>;
