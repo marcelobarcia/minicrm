@@ -6,7 +6,7 @@
 <title>Ninja Sales Terminal</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -35,6 +35,7 @@ header{border:1px solid var(--line);padding:12px;margin-bottom:12px;box-shadow:0
 .stat b{display:block;color:var(--bright);font-size:18px}
 .section{padding:12px;margin:10px 0}
 .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:var(--bright)}
+.hoy-section>.section-title{margin-bottom:0;cursor:pointer;user-select:none;padding:2px 0}.hoy-section.open>.section-title{margin-bottom:10px}.hoy-section>.section-title:hover{color:var(--amber)}.hoy-section .section-chevron{display:inline-block;width:18px}.hoy-section-count{margin-left:auto;padding-left:12px}
 .card{padding:11px;margin:8px 0}
 .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .title{color:var(--bright);font-weight:bold}
@@ -144,28 +145,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .pulse-insight{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;text-align:left;padding:10px 2px;cursor:pointer;line-height:1.45}.pulse-insight:last-child{border-bottom:0}
 .pulse-detail{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
 @media(max-width:520px){.pulse-week{grid-template-columns:64px 1fr 26px;gap:7px}.pulse-stat{min-width:0}}
-
-.activity-timeline{border:1px solid var(--line);padding:14px;margin-bottom:16px;min-width:0}
-.timeline-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding:4px 0 10px;scrollbar-color:var(--amber) transparent}
-.timeline-track{display:flex;align-items:flex-start;width:max-content;min-width:100%;position:relative;padding-top:22px}
-.timeline-track:before{content:"";position:absolute;top:48px;left:18px;right:22px;height:2px;background:var(--amber)}
-.timeline-date{width:106px;flex:0 0 106px;position:relative;background:none;border:0;color:var(--amber);font:inherit;cursor:pointer;text-align:center;padding:0 5px}
-.timeline-date:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
-.timeline-dot-wrap{height:52px;display:flex;align-items:center;justify-content:center}
-.timeline-dot{display:block;border:2px solid var(--amber);border-radius:50%;background:var(--bg,#080600);box-shadow:0 0 7px rgba(255,176,0,.2)}
-.timeline-date[aria-pressed="true"] .timeline-dot{background:var(--amber);box-shadow:0 0 12px rgba(255,176,0,.5)}
-.timeline-start{position:absolute;top:0;left:16px;font-size:10px}
-.timeline-arrow{flex:0 0 42px;line-height:52px;font-size:30px;position:relative;text-align:center}
-.timeline-date time{display:block;font-size:12px;margin-top:5px}.timeline-count{display:block;font-size:11px;margin-top:4px}
-.timeline-detail{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.timeline-detail p{white-space:pre-wrap;margin:5px 0 12px;overflow-wrap:anywhere}
-.pulse-types{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}.pulse-type{display:inline-flex;align-items:center;gap:7px;min-height:42px}.pulse-type-icon{font-size:18px;line-height:1}.pulse-type-count{font-size:17px}.pulse-type[aria-pressed="true"]{background:var(--amber);color:#080600}.pulse-filter-summary{margin-bottom:12px}
-.org-tree .org-external::before,.org-tree .org-external::after{border-top-style:dashed;border-left-style:dashed;border-right-style:dashed}.org-tree .org-external>.org-node{border-style:dashed;position:relative}.org-tree .org-external>.org-node::before{content:"";position:absolute;left:50%;top:-20px;height:18px;border-left:1px dashed var(--amber)}.org-account{cursor:default}.org-external-label{color:var(--amber);font-size:10px;margin-top:5px}
-
-.app.desktop-side{width:100%;max-width:none;margin:0;padding:10px 10px 122px;font-size:14px}
-.desktop-side .header-hero{display:none}.desktop-side .header-brandline{grid-template-columns:1fr auto;gap:8px}.desktop-side header{padding:10px}.desktop-side .header-title{font-size:15px}.desktop-side .header-sub{font-size:10px}
-.desktop-side .nav{width:100%;right:0;left:0;transform:none;grid-template-columns:repeat(4,minmax(0,1fr))}.desktop-side .nav button{min-width:0;padding:8px 4px;font-size:11px}
-.desktop-side .section{padding:9px}.desktop-side .card{padding:9px}.desktop-side .btn{padding:8px;font-size:12px}.desktop-side .section-title{gap:8px;flex-wrap:wrap;font-size:13px}.desktop-side .row{flex-wrap:wrap}.desktop-side .stats{gap:5px}.desktop-side .stat{padding:7px 3px}.desktop-side .pipeline{display:block}.desktop-side .pipeline>div{margin-bottom:10px}.desktop-side .global-search-input{min-width:0}
-.desktop-side .overlay{left:0;width:100%;right:0}.desktop-side .modal{width:100%;max-width:100%;padding:12px}.desktop-side .fab{right:16px;bottom:105px;left:auto;transform:none}.desktop-side .userline{overflow-wrap:anywhere}.desktop-side .side-hint{margin:8px 0 0;line-height:1.5}.desktop-side .pulse-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -211,182 +190,35 @@ const SEED={
  ]
 };
 const KEY="ataway_minicrm_v01";
-const CLOUD_TABLES=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar","licitaciones","iniciativas"];
 function localISODate(d=new Date()){
  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
 }
-const APP_TIME_ZONE="America/Santiago";
-function businessISODate(d=new Date()){
- const parts=new Intl.DateTimeFormat("en-US",{timeZone:APP_TIME_ZONE,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
- const get=t=>parts.find(p=>p.type===t).value;
- return `${get("year")}-${get("month")}-${get("day")}`;
-}
-function shiftISODate(date,days){
- const d=new Date(date+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);
-}
-function activityModal(value){
- return !!value && !Object.keys(value).some(k=>k!=="editActivity" && /^(view|new|edit|status|quick)/.test(k));
-}
-function calendarWeeks(activities,today){
- const weekday=new Date(today+"T12:00:00Z").getUTCDay();
- const monday=shiftISODate(today,-((weekday+6)%7));
- return [3,2,1,0].map(back=>{
-  const start=shiftISODate(monday,-back*7),end=back===0?today:shiftISODate(start,6);
-  return {label:back===0?"ESTA SEM":`SEM -${back}`,start,end,items:activities.filter(a=>a.fecha>=start&&a.fecha<=end)};
- });
-}
+const today=localISODate();
 function load(){
  try{
   const x=JSON.parse(localStorage.getItem(KEY))||SEED;
   return {...x,tareas:Array.isArray(x.tareas)?x.tareas:[],notas:Array.isArray(x.notas)?x.notas:[],licitaciones:Array.isArray(x.licitaciones)?x.licitaciones:[],iniciativas:Array.isArray(x.iniciativas)?x.iniciativas:[]};
  }catch{return {...SEED,tareas:[],notas:[],licitaciones:[],iniciativas:[]}}
 }
-function daysSince(d){return Math.floor((new Date(businessISODate())-new Date(d))/86400000)}
-
-function ActivityTimeline({activities}){
- const [selected,setSelected]=React.useState(null),scrollRef=React.useRef(null);
- const groups=React.useMemo(()=>{
-  const dates=new Map();
-  activities.forEach(a=>{if(!a.fecha)return;const list=dates.get(a.fecha)||[];list.push(a);dates.set(a.fecha,list)});
-  return [...dates].sort(([a],[b])=>a.localeCompare(b)).map(([date,items])=>({date,items}));
- },[activities]);
- const latest=groups.at(-1)?.date;
- React.useLayoutEffect(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth},[latest]);
- const active=groups.find(g=>g.date===selected);
- const count=groups.reduce((n,g)=>n+g.items.length,0);
- const format=date=>new Intl.DateTimeFormat("es-CL",{day:"2-digit",month:"short",year:"numeric",timeZone:"UTC"}).format(new Date(date+"T12:00:00Z"));
- if(!groups.length)return null;
- return <section className="activity-timeline" aria-label="Línea cronológica de actividades">
-  <div className="small">{count} {count===1?"TOQUE":"TOQUES"} · {groups.length} {groups.length===1?"DÍA DE CONTACTO":"DÍAS DE CONTACTO"}</div>
-  <div className="meta">DEL {format(groups[0].date)} AL {format(latest)} · PULSA UNA FECHA PARA VER LOS TOQUES</div>
-  <div className="timeline-scroll" ref={scrollRef} tabIndex={0} aria-label="Fechas de contacto; desplaza para ver el inicio">
-   <div className="timeline-track"><span className="timeline-start">INICIO</span>
-    {groups.map(g=><button key={g.date} type="button" className="timeline-date" aria-pressed={selected===g.date} aria-label={format(g.date)+", "+g.items.length+" toques"} onClick={()=>setSelected(selected===g.date?null:g.date)}>
-     <span className="timeline-dot-wrap"><span className="timeline-dot" style={{width:12+Math.min(g.items.length,8)*3,height:12+Math.min(g.items.length,8)*3}}/></span>
-     <time dateTime={g.date}>{format(g.date)}</time><span className="timeline-count">{g.items.length} {g.items.length===1?"toque":"toques"}</span>
-    </button>)}<span className="timeline-arrow" aria-hidden="true">→</span>
-   </div>
-  </div>
-  {active&&<div className="timeline-detail" aria-live="polite"><div className="row"><strong>{format(active.date)} // {active.items.length} TOQUES</strong><button type="button" className="btn dim" onClick={()=>setSelected(null)}>CERRAR</button></div>{active.items.map(a=><div key={a.id}><div className="small">{a.tipo}</div><p>{a.nota||"SIN NOTA"}</p></div>)}</div>}
- </section>;
-}
-
-
-function AccountContactLinks({company,contacts,companyName,onSave,onOpen,onActivity}){
- const [open,setOpen]=React.useState(false),[query,setQuery]=React.useState(""),[draft,setDraft]=React.useState({}),[busy,setBusy]=React.useState(false),[message,setMessage]=React.useState("");
- const linked=contacts.filter(c=>c.empresaId!==company.id&&(c.cuentasVinculadas||[]).some(x=>x.empresaId===company.id));
- const candidates=contacts.filter(c=>c.empresaId!==company.id);
- const role=c=>(c.cuentasVinculadas||[]).find(x=>x.empresaId===company.id)?.rol||"";
- function begin(){setDraft(Object.fromEntries(linked.map(c=>[c.id,role(c)])));setQuery("");setMessage("");setOpen(true)}
- const normalize=v=>(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
- const filtered=candidates.filter(c=>normalize(c.nombre+" "+companyName(c.empresaId)+" "+c.cargo).includes(normalize(query))).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
- async function submit(ev){ev.preventDefault();if(busy)return;setBusy(true);setMessage("");try{const result=await onSave(company.id,draft);if(result){setOpen(false)}else{setMessage("No se completaron todos los cambios. Los vínculos guardados ya aparecen en la ficha. Puedes reintentar.")}}catch(e){setMessage(e.message)}finally{setBusy(false)}}
- return <section className="account-links"><div className="section-title"><span>&gt; CONTACTOS VINCULADOS</span><span>{linked.length}</span></div>
-  <div className="small">CONTACTOS DE OTRAS EMPRESAS QUE PARTICIPAN EN ESTA CUENTA.</div>
-  {!open&&<div className="actions"><button type="button" className="btn primary" onClick={begin}>+ VINCULAR CONTACTO EXISTENTE</button></div>}
-  {open&&<form onSubmit={submit} className="card" aria-label="Vincular contactos"><fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0}}>
-   <label>BUSCAR CONTACTO O EMPRESA</label><input aria-label="Buscar contacto o empresa" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Nombre, Oracle, partner..."/>
-   <div className="small">{Object.keys(draft).length} SELECCIONADOS // MARCA VARIOS CONTACTOS Y DEFINE SU ROL EN {company.nombre}.</div>
-   <div style={{maxHeight:320,overflowY:"auto",marginTop:10}}>{filtered.map(c=><div key={c.id} className="card"><label style={{color:"var(--amber)",margin:0}}><input type="checkbox" style={{width:"auto",marginRight:8}} checked={Object.hasOwn(draft,c.id)} onChange={e=>setDraft(prev=>{const next={...prev};if(e.target.checked)next[c.id]=role(c);else delete next[c.id];return next})}/>{c.nombre} // {companyName(c.empresaId)||"SIN EMPRESA"}</label>{Object.hasOwn(draft,c.id)&&<><label>ROL EN ESTA CUENTA</label><input aria-label={"Rol de "+c.nombre} value={draft[c.id]} onChange={e=>setDraft(prev=>({...prev,[c.id]:e.target.value}))} placeholder="Ej: Ejecutivo Oracle, partner, asesor"/></>}</div>)}{!filtered.length&&<div className="empty">SIN CONTACTOS COINCIDENTES.</div>}</div>
-   <div className="actions"><button className="btn primary" type="submit">{busy?"GUARDANDO...":"GUARDAR VÍNCULOS"}</button><button className="btn dim" type="button" onClick={()=>setOpen(false)}>CANCELAR</button></div>
-  </fieldset>{message&&<div role="alert" className="small">{message}</div>}</form>}
-  {linked.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{companyName(c.empresaId)||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ROL EN LA CUENTA: {role(c)||"SIN DEFINIR"}</div><div className="actions"><button type="button" className="btn dim" onClick={()=>onOpen(c.id)}>FICHA</button><button type="button" className="btn" onClick={()=>onActivity(c.id)}>+ ACTIVIDAD</button>{!open&&<button type="button" className="btn dim" onClick={begin}>EDITAR / QUITAR VÍNCULO</button>}</div></div>)}
-  {!linked.length&&!open&&<div className="empty">SIN CONTACTOS EXTERNOS VINCULADOS.</div>}
- </section>;
-}
-
-function desktopSideAvailable(){
- return window.matchMedia("(any-hover: hover) and (any-pointer: fine)").matches&&!/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)&&screen.availWidth>=800;
-}
+function daysSince(d){return Math.floor((new Date(today)-new Date(d))/86400000)}
 function App(){
- const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalState]=useState(false); const [q,setQ]=useState("");
- const [dialog,setDialog]=useState(null);
- const [desktopCapable,setDesktopCapable]=useState(desktopSideAvailable);
- const [sideMode,setSideMode]=useState(()=>localStorage.getItem(KEY+"_desktop_side")==="1");
- const sideActive=desktopCapable&&sideMode;
- const sideWindowOrigin=React.useRef(null);
- useEffect(()=>{
-  const media=window.matchMedia("(any-hover: hover) and (any-pointer: fine)"),update=()=>setDesktopCapable(desktopSideAvailable());
-  media.addEventListener("change",update);return ()=>media.removeEventListener("change",update);
- },[]);
- function toggleSideMode(){
-  const next=!sideActive;setSideMode(next);localStorage.setItem(KEY+"_desktop_side",next?"1":"0");
-  const installed=window.matchMedia("(display-mode: standalone)").matches;
-  if(!installed)return;
-  try{
-   if(next){
-    sideWindowOrigin.current={width:window.outerWidth,height:window.outerHeight,x:window.screenX,y:window.screenY};
-    const width=430,height=screen.availHeight;
-    window.resizeTo(width,height);window.moveTo((screen.availLeft||0)+screen.availWidth-width,screen.availTop||0);
-   }else if(sideWindowOrigin.current){const original=sideWindowOrigin.current;window.resizeTo(original.width,original.height);window.moveTo(original.x,original.y);sideWindowOrigin.current=null}
-  }catch{} // Some installed PWA hosts leave window sizing to the OS.
- }
-
- const [today,setToday]=useState(businessISODate);
- const activityOrigin=React.useRef(null), pendingScroll=React.useRef(null), modalRef=React.useRef(null);
- const activitySaving=React.useRef(false);
- const [savingActivity,setSavingActivity]=useState(false);
- function setModal(next){
-  if(activitySaving.current)return;
-  if(activityModal(next)&&!activityModal(modal)){
-   activityOrigin.current={modal, x:window.scrollX,y:window.scrollY,scroll:modalRef.current?.scrollTop||0,focus:document.activeElement};
-   pendingScroll.current={scroll:0};
-  }else if(!next&&activityModal(modal)&&activityOrigin.current){
-   const origin=activityOrigin.current;activityOrigin.current=null;
-   pendingScroll.current=origin;setModalState(origin.modal);return;
-  }
-  setModalState(next);
- }
- React.useLayoutEffect(()=>{
-  const origin=pendingScroll.current;if(!origin)return;pendingScroll.current=null;
-  if(origin.focus?.isConnected)origin.focus.focus({preventScroll:true});
-  if(origin.y!==undefined)window.scrollTo(origin.x,origin.y);
-  if(modalRef.current)modalRef.current.scrollTop=origin.scroll;
- },[modal]);
- useEffect(()=>{
-  const refresh=()=>setToday(businessISODate());
-  const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);
-  return ()=>{clearInterval(timer);window.removeEventListener("focus",refresh)};
- },[]);
- useEffect(()=>{
-  const onEscape=e=>{
-   if(e.key!=="Escape")return;
-   if(dialog){e.preventDefault();setDialog(null);return}
-   if(modal){e.preventDefault();setModal(false)}
-  };
-  window.addEventListener("keydown",onEscape);
-  return ()=>window.removeEventListener("keydown",onEscape);
- },[modal,dialog]);
+ const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModal]=useState(false); const [q,setQ]=useState(""); const [hoyOpen,setHoyOpen]=useState(null);
  const [dataMsg,setDataMsg]=useState("");
-
+ const [dialog,setDialog]=useState(null);
  const [lastBackup,setLastBackup]=useState(localStorage.getItem(KEY+"_lastBackup")||"");
  const [session,setSession]=useState(null), [authReady,setAuthReady]=useState(false);
  const [authMsg,setAuthMsg]=useState(""), [cloudStatus,setCloudStatus]=useState("COMPROBANDO...");
  const [cloudCounts,setCloudCounts]=useState(null);
  const [cloudReady,setCloudReady]=useState(false);
  const [cloudLoaded,setCloudLoaded]=useState(false);
- const [liveStatus,setLiveStatus]=useState("CONECTANDO"),[syncPending,setSyncPending]=useState(false);
- const liveControl=React.useRef({blocked:false,user:null,revision:0,loading:false,pending:false,schedule:null});
- const cloudScrollRestore=React.useRef(null);
- liveControl.current.user=session?.user?.id||null;
- liveControl.current.blocked=!!dialog||!!(modal&&(activityModal(modal)||Object.keys(modal).some(k=>/^(new|edit|status)/.test(k))));
- function syncBlocked(){return liveControl.current.blocked||activitySaving.current||!!document.querySelector('.account-links form')}
- React.useLayoutEffect(()=>{
-  const pos=cloudScrollRestore.current;if(!pos)return;cloudScrollRestore.current=null;
-  window.scrollTo(pos.x,pos.y);if(modalRef.current)modalRef.current.scrollTop=pos.modal;
- },[db]);
- useEffect(()=>{if(liveControl.current.pending&&!syncBlocked())liveControl.current.schedule?.()},[modal,dialog,db]);
-
  const [migrating,setMigrating]=useState(false);
  const [companySearch,setCompanySearch]=useState("");
  const [globalSearch,setGlobalSearch]=useState("");
  const [logType,setLogType]=useState("TODAS");
  const [logRange,setLogRange]=useState("30");
  const [logLimit,setLogLimit]=useState(30);
- const [pulseDetail,setPulseDetailState]=useState(null);
- const [pulseType,setPulseType]=useState(null);
- function setPulseDetail(value){setPulseType(null);setPulseDetailState(value)}
+ const [pulseDetail,setPulseDetail]=useState(null);
  const [initiativePortfolioFilter,setInitiativePortfolioFilter]=useState("Activa");
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
@@ -407,7 +239,7 @@ function App(){
  function parseExtra(v){try{return v?JSON.parse(v):{}}catch{return {}}}
  function toUI(rows){
   const empresas=rows.empresas.map(x=>({id:x.id,nombre:x.nombre,industria:x.industria||"",estado:x.estado||"Prospecto",potencial:x.potencial||"Medio"}));
-  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),extra:z,cuentasVinculadas:Array.isArray(z.cuentasVinculadas)?z.cuentasVinculadas.filter(v=>v&&typeof v.empresaId==="string"):[],linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
+  const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
   const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],iniciativaId:z.iniciativaId||"",proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||"",createdAt:x.created_at}});
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",iniciativaId:x.iniciativa_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
@@ -423,7 +255,6 @@ function App(){
   rows[table]=[row]; return toUI(rows)[table][0];
  }
  function applyCloudRows(changes){
-  liveControl.current.revision++;
   setDb(prev=>{
    const next={...prev};
    for(const [table,row] of changes){
@@ -433,57 +264,27 @@ function App(){
    return next;
   });
  }
- async function loadCloud({background=false}={}){
-  const control=liveControl.current,uid=session?.user?.id;
-  if(!uid||control.loading)return false;
-  if(background&&(syncBlocked()||document.hidden)){control.pending=true;if(!syncBlocked())setSyncPending(true);return false}
-  control.loading=true;const revision=control.revision;
-  if(!background)setCloudStatus("SINCRONIZANDO...");
+ async function loadCloud(){
+  if(!session)return;
+  setCloudStatus("SINCRONIZANDO...");
   try{
-   const results=await Promise.all(CLOUD_TABLES.map(t=>sb.from(t).select("*").order("created_at",{ascending:true})));
-   if(control.user!==uid)return false;
-   const rows={},counts={};results.forEach((r,i)=>{if(r.error)throw r.error;rows[CLOUD_TABLES[i]]=r.data||[];counts[CLOUD_TABLES[i]]=rows[CLOUD_TABLES[i]].length});
-   if(background&&(syncBlocked()||control.revision!==revision)){control.pending=true;if(!syncBlocked())setSyncPending(true);return false}
+   const names=["empresas","contactos","oportunidades","actividades","tareas","notas","triggers","radar","licitaciones","iniciativas"], rows={}, counts={};
+   for(const t of names){
+    const {data,error}=await sb.from(t).select("*").order("created_at",{ascending:true});
+    if(error)throw error; rows[t]=data||[];counts[t]=rows[t].length;
+   }
+   setCloudCounts(counts);
+   const total=Object.values(counts).reduce((a,b)=>a+b,0);
    const fresh=toUI(rows);
-   if(background)cloudScrollRestore.current={x:window.scrollX,y:window.scrollY,modal:modalRef.current?.scrollTop||0};
-   setDb(fresh);setCloudCounts(counts);localStorage.setItem(KEY,JSON.stringify(fresh));localStorage.setItem(KEY+"_cloud_migrated","1");
-   setCloudReady(true);setCloudLoaded(true);setCloudStatus("CONECTADO");
-   if(control.revision===revision){control.pending=false;setSyncPending(false)}
-   return true;
-  }catch(e){if(control.user===uid){if(!background)setCloudStatus("ERROR: "+e.message);else{control.pending=true;setSyncPending(true)}}return false}
-  finally{control.loading=false}
+   setDb(fresh);
+   localStorage.setItem(KEY,JSON.stringify(fresh));
+   localStorage.setItem(KEY+"_cloud_migrated","1");
+   setCloudReady(true);
+   setCloudLoaded(true);
+   setCloudStatus("CONECTADO");
+  }catch(e){setCloudStatus("ERROR: "+e.message);}
  }
- useEffect(()=>{if(session)loadCloud();else{setCloudStatus("SIN SESIÓN");setCloudCounts(null);setCloudReady(false);setCloudLoaded(false)}},[session?.user?.id]);
- useEffect(()=>{
-  const uid=session?.user?.id;if(!uid)return;
-  let disposed=false,timer=null,subscribed=false;
-  const control=liveControl.current;
-  function schedule(){
-   if(disposed)return;
-   control.pending=true;if(!syncBlocked())setSyncPending(true);clearTimeout(timer);
-   timer=setTimeout(async()=>{
-    if(disposed||control.user!==uid||syncBlocked()||document.hidden||control.loading)return;
-    await loadCloud({background:true});
-   },700);
-  }
-  control.schedule=schedule;
-  const changed=()=>{if(disposed)return;control.revision++;schedule()};
-  let channel=sb.channel("minicrm-live-"+uid);
-  for(const table of CLOUD_TABLES){
-   for(const event of ["INSERT","UPDATE"])channel=channel.on("postgres_changes",{event,schema:"public",table,filter:"user_id=eq."+uid},changed);
-   // DELETE cannot be filtered by owner. Treat only as an invalidation; refetch through SELECT/RLS, never apply its payload.
-   channel=channel.on("postgres_changes",{event:"DELETE",schema:"public",table},changed);
-  }
-  channel.subscribe(status=>{
-   if(disposed)return;subscribed=status==="SUBSCRIBED";if(!syncBlocked())setLiveStatus(subscribed?"EN VIVO":"RESPALDO AUTOMÁTICO");
-   if(subscribed)schedule();
-  });
-  const visible=()=>{if(!document.hidden)schedule()};
-  window.addEventListener("focus",visible);window.addEventListener("online",visible);document.addEventListener("visibilitychange",visible);
-  // Low-frequency recovery while disconnected or while a deferred refresh is waiting for an inline form to close.
-  const fallback=setInterval(()=>{if(!document.hidden&&(!subscribed||control.pending))schedule()},30000);
-  return ()=>{disposed=true;clearTimeout(timer);clearInterval(fallback);window.removeEventListener("focus",visible);window.removeEventListener("online",visible);document.removeEventListener("visibilitychange",visible);if(control.schedule===schedule)control.schedule=null;control.pending=false;sb.removeChannel(channel)};
- },[session?.user?.id]);
+ useEffect(()=>{if(session)loadCloud();else{setCloudStatus("SIN SESIÓN");setCloudCounts(null);setCloudReady(false)}},[session]);
  async function login(ev){
   ev.preventDefault();setAuthMsg("CONECTANDO...");
   const f=new FormData(ev.currentTarget);
@@ -514,23 +315,6 @@ function App(){
   });
  }
  const emp=id=>db.empresas.find(x=>x.id===id);
- const contactInAccount=(c,id)=>!!id&&(c.empresaId===id||(c.cuentasVinculadas||[]).some(v=>v.empresaId===id));
- async function saveAccountLinks(companyId,draft){
-  const candidates=db.contactos.filter(c=>c.empresaId!==companyId);
-  try{
-   for(const c of candidates){
-    const existing=(c.cuentasVinculadas||[]).find(v=>v.empresaId===companyId),selected=Object.hasOwn(draft,c.id),rol=(draft[c.id]||"").trim();
-    if((!existing&&!selected)||(existing&&selected&&(existing.rol||"")===rol))continue;
-    const {data:current,error:readError}=await sb.from("contactos").select("*").eq("id",c.id).single();
-    if(readError)throw readError;
-    const extra=parseExtra(current.observaciones),links=(Array.isArray(extra.cuentasVinculadas)?extra.cuentasVinculadas:[]).filter(v=>v&&v.empresaId!==companyId);
-    if(selected)links.push({empresaId:companyId,rol});
-    const {data,error}=await sb.from("contactos").update({observaciones:JSON.stringify({...extra,cuentasVinculadas:links})}).eq("id",c.id).select().single();
-    if(error)throw error;applyCloudRows([["contactos",data]]);
-   }
-   return true;
-  }catch(error){showInfo("ERROR AL GUARDAR VÍNCULOS",error.message);return false}
- }
  const norm=v=>(v||"").toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
  const gs=norm(globalSearch.trim());
  const globalResults=gs.length<2?[]:[
@@ -548,7 +332,7 @@ function App(){
  // show only the task here. The opportunity remains available in PIPELINE and from the task itself.
  const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o));
- const next7=shiftISODate(today,7);
+ const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
  const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const reconectar=[...db.contactos].filter(c=>c.ultimo && daysSince(c.ultimo)>=45 && (!c.proximo || c.proximo<=next7)).sort((a,b)=>{
    const score=x=>(x.potencial==="Alto"?100:x.potencial==="Medio"?50:0)+Math.min(daysSince(x.ultimo),365);
@@ -558,8 +342,8 @@ function App(){
 
  const tenderRenewals=(db.licitaciones||[]).map(t=>({...t,renewalDate:minusDaysISO(t.fin,t.prepararDias)})).filter(t=>t.fin&&t.renewalDate&&t.renewalDate<=next7&&t.fin>=today).sort((a,b)=>a.renewalDate.localeCompare(b.renewalDate));
  const initiativeStatuses=(db.iniciativas||[]).filter(i=>i.estado==="Activa"&&i.proximoStatus&&i.proximoStatus<=next7).sort((a,b)=>a.proximoStatus.localeCompare(b.proximoStatus));
- // PULSO COMERCIAL // rolling 30 days + Monday-based calendar weeks (Santiago).
- const pulseStart=shiftISODate(today,-29);
+ // PULSO COMERCIAL // rolling 30 days + four 7-day rhythm buckets.
+ const pulseStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-29);return localISODate(d)})();
  const pulseActivities=(db.actividades||[]).filter(a=>a.fecha&&a.fecha>=pulseStart&&a.fecha<=today);
  const pulseContactIds=[...new Set(pulseActivities.map(a=>a.contactoId).filter(Boolean))];
  const pulseCompanyIds=[...new Set(pulseActivities.map(a=>a.empresaId).filter(Boolean))];
@@ -570,10 +354,15 @@ function App(){
  const pulseOverdue=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha<today);
  const pulseUpcoming=(db.tareas||[]).filter(t=>!t.completada&&t.fecha&&t.fecha>=today&&t.fecha<=next7);
  const pulseNewOpps=(db.oportunidades||[]).filter(o=>{
-   const created=o.createdAt?businessISODate(new Date(o.createdAt)):""; return created&&created>=pulseStart&&created<=today;
+   const created=(o.createdAt||"").slice(0,10); return created&&created>=pulseStart&&created<=today;
  });
  const pulsePct=pulseContacts.length?Math.round(pulseWithNext.length*100/pulseContacts.length):0;
- const pulseWeeks=calendarWeeks(db.actividades||[],today);
+ const pulseWeeks=[3,2,1,0].map(back=>{
+   const end=new Date();end.setHours(0,0,0,0);end.setDate(end.getDate()-back*7);
+   const start=new Date(end);start.setDate(start.getDate()-6);
+   const sy=localISODate(start),ey=localISODate(end);
+   return {label:back===0?"ESTA SEM":`SEM -${back}`,start:sy,end:ey,items:pulseActivities.filter(a=>a.fecha>=sy&&a.fecha<=ey)};
+ });
  const pulseMax=Math.max(1,...pulseWeeks.map(w=>w.items.length));
  const pulseInitiatives=(db.iniciativas||[]).map(i=>{const acts=pulseActivities.filter(a=>a.iniciativaId===i.id);const opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id);return {i,acts,opps}}).filter(x=>x.acts.length||x.opps.length).sort((a,b)=>b.acts.length-a.acts.length);
  const pulseUnattributed=pulseActivities.filter(a=>!a.iniciativaId);
@@ -627,10 +416,7 @@ function App(){
   });
  }
  async function saveActivity(ev){
-  ev.preventDefault(); if(activitySaving.current)return;
-  activitySaving.current=true;setSavingActivity(true);
-  try{
-  const f=new FormData(ev.currentTarget);
+  ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const contactoId=f.get("contactoId")||null,oportunidadId=f.get("oportunidadId")||null;
   const empresaId=f.get("activityEmpresaId")||null;
   const editing=modal.editActivity?db.actividades.find(a=>a.id===modal.editActivity):null;
@@ -662,9 +448,7 @@ function App(){
     else ({data,error}=await sb.from("tareas").insert({...taskRow,user_id:session.user.id}).select().single());
     if(await cloudError(error))return;changes.push(["tareas",data]);
   }
-  applyCloudRows(changes);activitySaving.current=false;setModal(false);
-  }catch(error){showInfo("ERROR AL GUARDAR ACTIVIDAD",error.message)}
-  finally{activitySaving.current=false;setSavingActivity(false)}
+  applyCloudRows(changes);setModal(false);
  }
  function deleteActivity(id){
   askConfirm("ELIMINAR ACTIVIDAD","Se eliminará el registro histórico. La próxima acción de la oportunidad no será modificada.",async()=>{
@@ -683,7 +467,7 @@ function App(){
     estado:f.get("estado"),potencial:f.get("potencial"),intereses:(f.get("intereses")||"").split(",").map(x=>x.trim()).filter(Boolean).join("|||"),
     ultimo_contacto:f.get("ultimo")||today,proximo_contacto:f.get("proximo")||null,
     reporta_a_id:f.get("reportaA")||null,rol_decision:f.get("rolDecision")||"Sin definir",posicion:f.get("posicion")||"Desconocida",
-    observaciones:JSON.stringify({...((modal.editContact?db.contactos.find(c=>c.id===modal.editContact)?.extra:null)||{}),linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
+    observaciones:JSON.stringify({linkedin:f.get("linkedin").trim(),origen:f.get("origen").trim(),nota:f.get("nota").trim()})};
   const q=(modal.editContact?sb.from("contactos").update(row).eq("id",modal.editContact):sb.from("contactos").insert({...row,user_id:session.user.id})).select().single();
   const {data,error}=await q;if(await cloudError(error))return;applyCloudRows([["contactos",data]]);setModal(false);
  }
@@ -937,7 +721,7 @@ function App(){
   const [companyId,setCompanyId]=React.useState(initialCompany||"");
   const [contactId,setContactId]=React.useState(initialContact||"");
   const [oppId,setOppId]=React.useState(initialOpp||"");
-  const contacts=companyId?db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
+  const contacts=companyId?db.contactos.filter(c=>c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const opps=companyId?db.oportunidades.filter(o=>o.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const chooseCompany=id=>{setCompanyId(id);if(!db.contactos.some(c=>c.id===contactId&&c.empresaId===id))setContactId("");if(!db.oportunidades.some(o=>o.id===oppId&&o.empresaId===id))setOppId("");};
   const chooseContact=id=>{setContactId(id);const c=id?db.contactos.find(x=>x.id===id):null;if(c?.empresaId&&c.empresaId!==companyId){setCompanyId(c.empresaId);setOppId("");}};
@@ -953,7 +737,7 @@ function App(){
   const [companyId,setCompanyId]=React.useState(inferredCompany);
   const [contactId,setContactId]=React.useState(initialContact||"");
   const [oppId,setOppId]=React.useState(initialOpp||"");
-  const contacts=companyId?db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
+  const contacts=companyId?db.contactos.filter(c=>c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const opps=companyId?db.oportunidades.filter(o=>o.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")):[];
   const chooseCompany=id=>{setCompanyId(id);if(!db.contactos.some(c=>c.id===contactId&&c.empresaId===id))setContactId("");if(!db.oportunidades.some(o=>o.id===oppId&&o.empresaId===id))setOppId("");};
   return <>
@@ -963,17 +747,17 @@ function App(){
   </>;
  };
  const OpportunityContactPicker=({o,selected})=>{
-  const [companyId,setCompanyId]=React.useState(o.empresaId||modal.company||"");
+  const [companyId,setCompanyId]=React.useState(o.empresaId||"");
   const [showExternal,setShowExternal]=React.useState(false);
-  const companyContacts=db.contactos.filter(c=>contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-  const externalSelected=db.contactos.filter(c=>selected.includes(c.id)&&!contactInAccount(c,companyId)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-  const externalAvailable=db.contactos.filter(c=>!contactInAccount(c,companyId)&&!selected.includes(c.id)).sort((a,b)=>((emp(a.empresaId)?.nombre||"").localeCompare(emp(b.empresaId)?.nombre||"","es")||a.nombre.localeCompare(b.nombre,"es")));
+  const companyContacts=db.contactos.filter(c=>companyId&&c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalSelected=db.contactos.filter(c=>selected.includes(c.id)&&c.empresaId!==companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const externalAvailable=db.contactos.filter(c=>c.empresaId!==companyId&&!selected.includes(c.id)).sort((a,b)=>((emp(a.empresaId)?.nombre||"").localeCompare(emp(b.empresaId)?.nombre||"","es")||a.nombre.localeCompare(b.nombre,"es")));
   return <>
    <label>EMPRESA *</label><select name="empresaId" required value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">-- SELECCIONAR --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
    <label>CONTACTOS ASOCIADOS</label>
    <div className="card">
-    <div className="small" style={{marginBottom:"7px"}}>{companyId?`CONTACTOS PROPIOS Y VINCULADOS A ${emp(companyId)?.nombre||"LA EMPRESA"}`:"SELECCIONA UNA EMPRESA"}</div>
-    {companyContacts.length?companyContacts.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre}{c.empresaId!==companyId?` // ${emp(c.empresaId)?.nombre||"SIN EMPRESA"} // VINCULADO`:""}</label>):<span className="small">{companyId?"SIN CONTACTOS DE ESTA EMPRESA.":"—"}</span>}
+    <div className="small" style={{marginBottom:"7px"}}>{companyId?`CONTACTOS DE ${emp(companyId)?.nombre||"LA EMPRESA"}`:"SELECCIONA UNA EMPRESA"}</div>
+    {companyContacts.length?companyContacts.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={selected.includes(c.id)}/>{c.nombre}</label>):<span className="small">{companyId?"SIN CONTACTOS DE ESTA EMPRESA.":"—"}</span>}
     {externalSelected.length>0&&<><hr/><div className="small" style={{marginBottom:"7px"}}>CONTACTOS EXTERNOS ASOCIADOS</div>{externalSelected.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id} defaultChecked={true}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>)}</>}
     <div className="actions" style={{marginTop:"9px"}}><button className="btn dim" type="button" onClick={()=>setShowExternal(v=>!v)}>{showExternal?"CERRAR CONTACTOS EXTERNOS":"+ AGREGAR CONTACTO EXTERNO"}</button></div>
     {showExternal&&<div style={{marginTop:"8px",borderTop:"1px solid var(--line)",paddingTop:"8px"}}><div className="small" style={{marginBottom:"7px"}}>OTRAS EMPRESAS</div>{externalAvailable.length?externalAvailable.map(c=><label key={c.id} style={{margin:"5px 0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="oppContact" value={c.id}/>{c.nombre} // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}</label>):<span className="small">SIN OTROS CONTACTOS DISPONIBLES.</span>}</div>}
@@ -985,21 +769,18 @@ function App(){
    <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
    <div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR</button><button className="btn" onClick={()=>setModal({opp:o.id})}>REGISTRAR</button></div>
  </div>;
- return <div className={`app crt${sideActive?" desktop-side":""}`}>
+ return <div className="app crt">
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.69 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.62 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
    </div>
-   {desktopCapable&&<div className="actions"><button type="button" className={`btn ${sideActive?"primary":"dim"}`} aria-pressed={sideActive} onClick={toggleSideMode}>{sideActive?"VOLVER A MODO NORMAL":"MODO LATERAL"}</button></div>}
-   {sideActive&&<div className="small side-hint">MODO LATERAL · Ajusta el ancho de esta ventana o usa Windows + → para colocarla junto a tus aplicaciones.</div>}
    <div className="userline"><span className="small">{session.user.email} // {cloudStatus}</span><button className="btn dim" onClick={logout}>SALIR</button></div>
   </header>
   <div className="global-search-wrap">
-   <div className="small" role="status" style={{marginBottom:8}}>SYNC // {liveStatus}{syncPending?" · CAMBIOS PENDIENTES" : ""}</div>
    <div className="global-search-line"><span className="global-search-prompt">&gt; BUSCAR</span><input ref={globalSearchRef} className="search global-search-input" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} placeholder="empresa, persona, iniciativa, oportunidad, trigger o nota...  [ / ]" /></div>
    {globalSearch&&<div className="global-search-results">
     {globalSearch.trim().length<2?<div className="empty">ESCRIBE AL MENOS 2 CARACTERES.</div>:globalResults.length?<>
@@ -1017,41 +798,43 @@ function App(){
     <div className="stat"><b>{hoy.length+tareasHoy.length}</b><span className="small">HOY</span></div>
     <div className="stat"><b>{proximas.length+tareas7.length}</b><span className="small">7 DÍAS</span></div>
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; VENCIDAS</span><span>{vencidas.length+tareasVencidas.length}</span></div>
-    {tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{vencidas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasVencidas.length&&!vencidas.length&&<div className="empty">SIN ACCIONES VENCIDAS.</div>}
+   <div className={`section hoy-section ${hoyOpen==="overdue"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="overdue"?null:"overdue")}><span><span className="section-chevron">{hoyOpen==="overdue"?"▼":"▶"}</span>VENCIDAS</span><span className="hoy-section-count">{vencidas.length+tareasVencidas.length}</span></div>
+    {hoyOpen==="overdue"&&<>{tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{vencidas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasVencidas.length&&!vencidas.length&&<div className="empty">SIN ACCIONES VENCIDAS.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; HOY // {today}</span><span>{hoy.length+tareasHoy.length}</span></div>
-    {tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}
+   <div className={`section hoy-section ${hoyOpen==="today"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="today"?null:"today")}><span><span className="section-chevron">{hoyOpen==="today"?"▼":"▶"}</span>HOY // {today}</span><span className="hoy-section-count">{hoy.length+tareasHoy.length}</span></div>
+    {hoyOpen==="today"&&<>{tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; PRÓXIMOS 7 DÍAS</span><span>{proximas.length+tareas7.length}</span></div>
-    {tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}
+   <div className={`section hoy-section ${hoyOpen==="next7"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="next7"?null:"next7")}><span><span className="section-chevron">{hoyOpen==="next7"?"▼":"▶"}</span>PRÓXIMOS 7 DÍAS</span><span className="hoy-section-count">{proximas.length+tareas7.length}</span></div>
+    {hoyOpen==="next7"&&<>{tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; STATUS COMERCIALES</span><span>{initiativeStatuses.length}</span></div>
-    {initiativeStatuses.length?initiativeStatuses.map(i=><div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{emp(i.empresaId)?.nombre||"SIN PARTNER"} // {i.cuentas.length} CUENTAS</div></div><span className="tag">STATUS</span></div><div className="meta">FECHA: {i.proximoStatus} // {i.objetivo||"SIN OBJETIVO"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN STATUS EN LOS PRÓXIMOS 7 DÍAS.</div>}
+   <div className={`section hoy-section ${hoyOpen==="status"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="status"?null:"status")}><span><span className="section-chevron">{hoyOpen==="status"?"▼":"▶"}</span>STATUS COMERCIALES</span><span className="hoy-section-count">{initiativeStatuses.length}</span></div>
+    {hoyOpen==="status"&&<>{initiativeStatuses.length?initiativeStatuses.map(i=><div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{emp(i.empresaId)?.nombre||"SIN PARTNER"} // {i.cuentas.length} CUENTAS</div></div><span className="tag">STATUS</span></div><div className="meta">FECHA: {i.proximoStatus} // {i.objetivo||"SIN OBJETIVO"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN STATUS EN LOS PRÓXIMOS 7 DÍAS.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; RENOVACIONES / CONTRATOS</span><span>{tenderRenewals.length}</span></div>
-    {tenderRenewals.length?tenderRenewals.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{emp(t.empresaId)?.nombre||"EMPRESA"}</div><div>{t.nombre}</div></div><span className="tag">RENOVACIÓN</span></div><div className="meta">VENTANA: {t.renewalDate} // VENCE: {t.fin}<br/>INCUMBENTE: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"SIN REGISTRAR"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewTender:t.id})}>VER CONTRATO →</button></div></div>):<div className="empty">SIN RENOVACIONES EN VENTANA.</div>}
+   <div className={`section hoy-section ${hoyOpen==="renewals"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="renewals"?null:"renewals")}><span><span className="section-chevron">{hoyOpen==="renewals"?"▼":"▶"}</span>RENOVACIONES / CONTRATOS</span><span className="hoy-section-count">{tenderRenewals.length}</span></div>
+    {hoyOpen==="renewals"&&<>{tenderRenewals.length?tenderRenewals.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{emp(t.empresaId)?.nombre||"EMPRESA"}</div><div>{t.nombre}</div></div><span className="tag">RENOVACIÓN</span></div><div className="meta">VENTANA: {t.renewalDate} // VENCE: {t.fin}<br/>INCUMBENTE: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"SIN REGISTRAR"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewTender:t.id})}>VER CONTRATO →</button></div></div>):<div className="empty">SIN RENOVACIONES EN VENTANA.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
+   <div className={`section hoy-section ${hoyOpen==="triggers"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="triggers"?null:"triggers")}><span><span className="section-chevron">{hoyOpen==="triggers"?"▼":"▶"}</span>TRIGGERS / SEÑALES</span><span className="hoy-section-count">{(db.triggers||[]).filter(t=>t.estado==="Nuevo").length}</span></div>
+    {hoyOpen==="triggers"&&<><div className="actions" style={{marginBottom:"10px"}}><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
     {(db.triggers||[]).filter(t=>t.estado==="Nuevo").length?(db.triggers||[]).filter(t=>t.estado==="Nuevo").sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}>
       <div className="row"><div><div className="title">{t.titulo}</div><div>{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?`${db.contactos.find(c=>c.id===t.contactoId).nombre} // `:""}{emp(t.empresaId)?.nombre||"SIN EMPRESA"} // {t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
       <div className="meta">{t.fecha} // {t.descripcion||"SIN DESCRIPCIÓN"}{t.fuente&&` // FUENTE: ${t.fuente}`}</div>
       <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.contactoId&&<button className="btn dim" onClick={()=>setModal({viewContact:t.contactoId})}>VER CONTACTO →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:t.contactoId||"",opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
-    </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}
+    </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}</>}
    </div>
-   <div className="section">
-    <div className="section-title"><span>&gt; RECONTACTAR</span><button className="btn dim" onClick={()=>setTab("red")}>VER RED</button></div>
+   <div className={`section hoy-section ${hoyOpen==="reconnect"?"open":""}`}>
+    <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="reconnect"?null:"reconnect")}><span><span className="section-chevron">{hoyOpen==="reconnect"?"▼":"▶"}</span>RECONTACTAR</span><span className="hoy-section-count">{reconectar.length}</span></div>
+    {hoyOpen==="reconnect"&&<><div className="actions" style={{marginBottom:"10px"}}><button className="btn dim" onClick={()=>setTab("red")}>VER RED</button></div>
     {reconectar.length?reconectar.slice(0,6).map(c=><div className="card" key={c.id}>
       <div className="row"><div><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div></div><span className="tag">{c.potencial}</span></div>
       <div className="meta">SIN CONTACTO: {daysSince(c.ultimo)} DÍAS // {c.intereses.join(", ")||"SIN TEMA"}{c.proximo&&` // PROGRAMADO: ${c.proximo}`}</div>
       <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>CONTACTAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div>
-     </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}
+     </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}</>}
    </div>
     </>}
   {tab==="pulse"&&<div className="section">
@@ -1094,21 +877,14 @@ function App(){
     if(pulseDetail==="initiatives"){
      const all=(db.iniciativas||[]), filtered=all.filter(i=>i.estado===initiativePortfolioFilter);
      const counts={Activa:all.filter(i=>i.estado==="Activa").length,Pausada:all.filter(i=>i.estado==="Pausada").length,Cerrada:all.filter(i=>i.estado==="Cerrada").length};
-         return <div className="pulse-detail">
+     return <div className="pulse-detail">
       <div className="section-title"><span>&gt; INICIATIVAS COMERCIALES</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
       <div className="actions" style={{marginBottom:"10px"}}>{["Activa","Pausada","Cerrada"].map(st=><button key={st} className={`btn ${initiativePortfolioFilter===st?"primary":"dim"}`} onClick={()=>setInitiativePortfolioFilter(st)}>{st.toUpperCase()}S {counts[st]}</button>)}<button className="btn" onClick={()=>setModal({newInitiative:true})}>+ INICIATIVA</button></div>
       {filtered.length?filtered.slice().sort((a,b)=>(a.proximoStatus||"9999-99-99").localeCompare(b.proximoStatus||"9999-99-99")).map(i=>{const acts=(db.actividades||[]).filter(a=>a.iniciativaId===i.id),opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id),moved=(i.cuentas||[]).filter(c=>c.estado&&c.estado!=="Pendiente").length;return <div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{i.tipo} // {emp(i.empresaId)?.nombre||"SIN PARTNER"}</div></div><span className="tag">{i.estado}</span></div><div className="meta">CUENTAS MOVIDAS: {moved}/{(i.cuentas||[]).length} // ACTIVIDADES: {acts.length} // OPORTUNIDADES: {opps.length}<br/>PRÓXIMO STATUS: {i.proximoStatus||"—"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewInitiative:i.id})}>ABRIR →</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button>{i.estado==="Activa"&&<button className="btn dim" onClick={()=>setModal({statusInitiative:i.id})}>STATUS</button>}</div></div>}):<div className="empty">SIN INICIATIVAS {initiativePortfolioFilter.toUpperCase()}S.</div>}
      </div>
     }
-const weekItems=pulseDetail.startsWith("week:")?items:null;
-    const typeCounts=weekItems?[...new Set(weekItems.map(a=>a.tipo||"Otro"))].map(type=>({type,count:weekItems.filter(a=>(a.tipo||"Otro")===type).length})):[];
-    const typeIcons={WhatsApp:"💬",Llamada:"📞",Email:"✉",Reunión:"🤝",Nota:"📝","Mensaje de LinkedIn":"in"};
-    const typeLabels={Llamada:"Llamadas",Reunión:"Reuniones",Nota:"Notas","Mensaje de LinkedIn":"LinkedIn"};
-    const activeType=typeCounts.some(x=>x.type===pulseType)?pulseType:null;
-    if(weekItems&&activeType)items=weekItems.filter(a=>(a.tipo||"Otro")===activeType);
     return <div className="pulse-detail">
      <div className="section-title"><span>&gt; {title}</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
-     {weekItems&&<><div className="pulse-types" role="group" aria-label="Actividades por tipo en la semana">{typeCounts.map(({type,count})=><button key={type} type="button" className="btn pulse-type" aria-pressed={activeType===type} aria-label={type+": "+count+" actividades"} onClick={()=>setPulseType(activeType===type?null:type)}><span className="pulse-type-icon" aria-hidden="true">{typeIcons[type]||"●"}</span><span>{typeLabels[type]||type}</span><strong className="pulse-type-count">{count}</strong></button>)}</div>{activeType&&<div className="small pulse-filter-summary">{items.length} DE {weekItems.length} ACTIVIDADES // {typeLabels[activeType]||activeType} <button className="btn dim" onClick={()=>setPulseType(null)}>VER TODAS</button></div>}</>}
      {pulseDetail.startsWith("initiative:")&&<div className="actions" style={{marginBottom:"8px"}}><button className="btn primary" onClick={()=>setModal({viewInitiative:pulseDetail.split(":")[1]})}>ABRIR INICIATIVA →</button></div>}
      {!items?.length?<div className="empty">SIN REGISTROS.</div>:
       (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?items.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
@@ -1219,7 +995,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
   <nav className="nav">
    {[["hoy","F1","HOY"],["pulse","F2","PULSO"],["red","F3","RED"],["pipe","F4","PIPE"],["emp","F5","EMP"],["radar","F6","RADAR"],["log","F7","LOG"],["data","F8","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])}><b>{n[1]}</b>{n[2]}</button>)}
   </nav>
-  {modal&&<div className="overlay" onClick={()=>setModal(false)}><div ref={modalRef} className="modal" onClick={e=>e.stopPropagation()}>
+  {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
     {modal.quick?<><div className="section-title"><span>&gt; ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
        <button className="btn primary" onClick={()=>setModal({newTask:true})}>✓ TAREA</button>
@@ -1292,7 +1068,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form></>
     })():modal.viewContact?(()=>{
-      const c=db.contactos.find(x=>x.id===modal.viewContact); if(!c)return <div className="empty">CONTACTO NO DISPONIBLE.</div>; const allActs=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,8);
+      const c=db.contactos.find(x=>x.id===modal.viewContact); const acts=db.actividades.filter(a=>a.contactoId===c.id).slice(0,8);
       const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
@@ -1345,9 +1121,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        {tasks.length?tasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       {modal.viewContact&&(c.cuentasVinculadas||[]).some(v=>emp(v.empresaId))&&<><hr/><div className="section-title"><span>&gt; CUENTAS VINCULADAS</span></div>{c.cuentasVinculadas.filter(v=>emp(v.empresaId)).map(v=><div className="card" key={v.empresaId}><div className="title">{emp(v.empresaId)?.nombre}</div><div className="meta">{v.rol||"SIN ROL DEFINIDO"}</div><button className="btn dim" onClick={()=>setModal({viewCompany:v.empresaId})}>VER CUENTA →</button></div>)}</>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{allActs.length}</span></div>
-       <ActivityTimeline key={modal.viewContact||modal.viewOpp} activities={allActs}/>
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():(modal.newOpp||modal.editOpp)?(()=>{
@@ -1370,7 +1144,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
     })():modal.viewOpp?(()=>{
       const o=db.oportunidades.find(x=>x.id===modal.viewOpp), e=emp(o.empresaId);
       const cs=(o.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
-      const allActs=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)); const acts=allActs.slice(0,10);
+      const acts=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,10);
       const notes=(db.notas||[]).filter(n=>n.oportunidadId===o.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const oppTasks=(db.tareas||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
@@ -1430,14 +1204,12 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        {oppTasks.length?oppTasks.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{notes.length}</span></div>
        {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{allActs.length}</span></div>
-       <ActivityTimeline key={modal.viewContact||modal.viewOpp} activities={allActs}/>
+       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
        {acts.length?acts.map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
       </>
     })():modal.viewCompany?(()=>{
-      const e=db.empresas.find(x=>x.id===modal.viewCompany); if(!e)return <div className="empty">EMPRESA NO DISPONIBLE.</div>;
+      const e=db.empresas.find(x=>x.id===modal.viewCompany);
       const cs=db.contactos.filter(c=>c.empresaId===e.id);
-      const mapContacts=db.contactos.filter(c=>contactInAccount(c,e.id));
       const os=db.oportunidades.filter(o=>o.empresaId===e.id);
       const ts=(db.tareas||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       const contactIds=new Set(cs.map(c=>c.id)), oppIds=new Set(os.map(o=>o.id));
@@ -1458,27 +1230,25 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        </div>
        <hr/><div className="section-title"><span>&gt; CONTACTOS</span><span>{cs.length}</span></div>
        {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} // {c.estado} // {c.potencial} // {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
-       <hr/><AccountContactLinks key={e.id} company={e} contacts={db.contactos} companyName={id=>emp(id)?.nombre||""} onSave={saveAccountLinks} onOpen={id=>setModal({viewContact:id})} onActivity={id=>setModal({company:e.id,contact:id})}/>
-       <hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{mapContacts.length} PERSONAS</span></div>
-       <div className="org-legend">LÍNEA CONTINUA: PROPIOS // PUNTEADA: EXTERNOS VINCULADOS</div>
-       {mapContacts.length?(()=>{
-         const ids=new Set(mapContacts.map(c=>c.id));
-         const roots=mapContacts.filter(c=>!c.reportaA||!ids.has(c.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+       <hr/><div className="section-title"><span>&gt; MAPA DE RELACIONES</span><span>{cs.length} PERSONAS</span></div>
+       <div className="org-legend">JERARQUÍA REGISTRADA // TOCA UNA PERSONA PARA ABRIR SU FICHA</div>
+       {cs.length?(()=>{
+         const ids=new Set(cs.map(c=>c.id));
+         const roots=cs.filter(c=>!c.reportaA||!ids.has(c.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
          const renderNode=(c,path=new Set())=>{
            if(!c||path.has(c.id))return null;
            const next=new Set(path);next.add(c.id);
-           const kids=mapContacts.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-           return <li key={c.id} className={c.empresaId!==e.id?"org-external":undefined}>
+           const kids=cs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+           return <li key={c.id}>
              <div className="org-node" onClick={()=>setModal({viewContact:c.id})}>
                <div className="org-name">{c.nombre}</div>
                <div className="org-role">{c.cargo||"SIN CARGO"}</div>
-               {c.empresaId!==e.id&&<div className="org-external-label">EXTERNO // {emp(c.empresaId)?.nombre||"SIN EMPRESA"}<br/>ROL: {(c.cuentasVinculadas||[]).find(v=>v.empresaId===e.id)?.rol||"SIN DEFINIR"}</div>}
                <div className="org-meta">{c.rolDecision||"Sin definir"} // {c.posicion||"Desconocida"}</div>
              </div>
              {kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}
            </li>
          };
-         return <OrgViewport><div className="org-tree"><ul><li><div className="org-node org-account"><div className="org-name">{e.nombre}</div><div className="org-meta">CUENTA // CONTACTOS Y RELACIONES REGISTRADAS</div></div><ul>{roots.map(r=>renderNode(r))}</ul></li></ul></div></OrgViewport>
+         return <OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport>
        })():<div className="empty">SIN CONTACTOS PARA MAPEAR.</div>}
        <hr/><div className="section-title"><span>&gt; TRIGGERS / SEÑALES</span><span>{(db.triggers||[]).filter(t=>t.empresaId===e.id).length}</span></div>
        {(db.triggers||[]).filter(t=>t.empresaId===e.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} // {t.tipo} // {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` // ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><div className="small">{t.descripcion||"—"}</div><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn danger" onClick={()=>deleteTrigger(t.id)}>BORRAR</button></div></div>)}
@@ -1495,8 +1265,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        {ts.length?ts.map(t=><TaskCard key={t.id} t={t}/>):<div className="empty">SIN TAREAS.</div>}
        <hr/><div className="section-title"><span>&gt; NOTAS</span><span>{ns.length}</span></div>
        {ns.length?ns.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><div style={{marginTop:"7px"}}>{n.texto}</div><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>&gt; HISTORIAL</span><span>{acts.length}</span></div>
-       <ActivityTimeline key={e.id} activities={acts}/>
+       <hr/><div className="section-title"><span>&gt; ACTIVIDAD</span><span>{acts.length}</span></div>
        {acts.length?acts.slice(0,15).map(a=><div className="card" key={a.id}><div className="row"><div className="title">{a.tipo}</div><span className="small">{a.fecha}</span></div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button></div></div>):<div className="empty">SIN ACTIVIDAD.</div>}
       </>
     })():modal.viewRadar?(()=>{
@@ -1552,11 +1321,11 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
       const activityContacts=activityOppContext
        ?(activityOppContext.contactos||[]).map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean)
        :modal.company
-        ?db.contactos.filter(c=>contactInAccount(c,modal.company))
+        ?db.contactos.filter(c=>c.empresaId===modal.company)
         :db.contactos;
       return <><div className="section-title"><span>&gt; {a?"EDITAR ACTIVIDAD":"REGISTRAR ACTIVIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
-      <form onSubmit={saveActivity} aria-busy={savingActivity}><fieldset disabled={savingActivity} style={{border:0,padding:0,margin:0,minWidth:0}}>
-       <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Mensaje de LinkedIn</option><option>Email</option><option>Nota</option></select>
+      <form onSubmit={saveActivity}>
+       <label>TIPO</label><select name="tipo" defaultValue={a?.tipo||"Llamada"}><option>Llamada</option><option>Reunión</option><option>WhatsApp</option><option>Email</option><option>Nota</option></select>
        <label>EMPRESA</label><select name="activityEmpresaId" defaultValue={autoCompanyId}><option value="">-- SIN EMPRESA --</option>{db.empresas.map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
        <label>CONTACTO</label><select name="contactoId" defaultValue={contextContactId}><option value="">-- SIN CONTACTO --</option>{activityContacts.map(c=><option key={c.id} value={c.id}>{c.nombre} // {emp(c.empresaId)?.nombre}</option>)}</select>
        {activityOppContext&&<div className="small" style={{marginTop:"-6px",marginBottom:"8px"}}>{activityContacts.length?`${activityContacts.length} CONTACTO${activityContacts.length===1?"":"S"} ASOCIADO${activityContacts.length===1?"":"S"} A ESTA OPORTUNIDAD`:"ESTA OPORTUNIDAD NO TIENE CONTACTOS ASOCIADOS"}</div>}
@@ -1568,7 +1337,7 @@ const weekItems=pulseDetail.startsWith("week:")?items:null;
        <label>FECHA PRÓXIMA ACCIÓN</label><input name="proximo" type="date" defaultValue={a?linkedOpp?.fecha||"":""}/>
        {a&&<div className="card"><label style={{margin:"0",color:"var(--amber)"}}><input style={{width:"auto",marginRight:"8px"}} type="checkbox" name="updateNext" value="yes"/>ACTUALIZAR TAMBIÉN LA PRÓXIMA ACCIÓN DE LA OPORTUNIDAD</label><div className="meta">DESMARCADO = SOLO CORRIGE EL REGISTRO HISTÓRICO.</div></div>}
        <div className="actions"><button className="btn primary" type="submit">{a?"GUARDAR CAMBIOS":"GUARDAR"}</button>{a&&<button className="btn danger" type="button" onClick={()=>deleteActivity(a.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
-      </fieldset></form></>
+      </form></>
     })()}</>}
    </div></div>}
   {dialog&&<div className="overlay" style={{zIndex:120}} onClick={()=>setDialog(null)}>
