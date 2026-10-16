@@ -145,6 +145,45 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .pulse-insight{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;text-align:left;padding:10px 2px;cursor:pointer;line-height:1.45}.pulse-insight:last-child{border-bottom:0}
 .pulse-detail{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
 @media(max-width:520px){.pulse-week{grid-template-columns:64px 1fr 26px;gap:7px}.pulse-stat{min-width:0}}
+
+/* V0.69 — persistent bottom navigation + app-aligned FAB.
+   .app>* sets position:relative with higher specificity than .nav/.fab,
+   so re-assert fixed positioning on these direct children. */
+.app>.nav{
+  position:fixed !important;
+  left:50% !important;
+  right:auto !important;
+  bottom:0 !important;
+  transform:translateX(-50%) !important;
+  width:min(860px,100%) !important;
+  display:grid !important;
+  grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+  z-index:60 !important;
+  margin:0 !important;
+  padding-bottom:env(safe-area-inset-bottom) !important;
+}
+.app>.fab{
+  position:fixed !important;
+  left:auto !important;
+  right:max(18px,calc((100vw - min(860px,100vw))/2 + 18px)) !important;
+  bottom:calc(72px + env(safe-area-inset-bottom)) !important;
+  z-index:65 !important;
+  margin:0 !important;
+}
+/* Reserve space so the fixed nav never covers the final record. */
+.app{padding-bottom:calc(94px + env(safe-area-inset-bottom)) !important}
+@media(max-width:700px){
+  .app>.nav{width:100% !important;grid-template-columns:repeat(8,minmax(0,1fr)) !important}
+  .app>.nav button{min-width:0;padding:8px 1px 7px;font-size:9px}
+  .app>.nav b{font-size:12px}
+  .app>.fab{right:14px !important;bottom:calc(68px + env(safe-area-inset-bottom)) !important;width:48px;height:48px;font-size:27px}
+  .app{padding-bottom:calc(88px + env(safe-area-inset-bottom)) !important}
+}
+@media(max-width:430px){
+  .app>.nav button{font-size:8px;letter-spacing:-.02em}
+  .app>.nav b{font-size:11px}
+}
+
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -317,7 +356,7 @@ hr{border-top:1px solid var(--line-soft)}
   .meta,.small{font-size:11px}
 }
 
-/* V0.68 — Search + true viewport modal overlay fix.
+/* V0.69 — Search + true viewport modal overlay fix.
    .app>* gives every direct child position:relative; that was overriding
    the base .overlay position:fixed and rendering fichas inline below HOY.
    Re-assert the complete overlay geometry here, after .app>*. */
@@ -996,7 +1035,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.68 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.69 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
