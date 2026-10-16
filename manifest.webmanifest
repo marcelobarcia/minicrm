@@ -1,26 +1,21 @@
 {
   "name": "Ninja Sales Terminal",
   "short_name": "Ninja Sales",
-  "description": "Personal Sales Terminal",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#080600",
-  "theme_color": "#080600",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
   "orientation": "any",
-  "lang": "es-CL",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
   ]
 }
