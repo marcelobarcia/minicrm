@@ -189,6 +189,39 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
   .app>.nav b{font-size:11px}
 }
 
+
+/* V0.72 — Fluid portrait / narrow-desktop layout.
+   On tall windows and tablets, use the available width instead of locking
+   the CRM to the desktop max-width. Wide landscape desktop keeps the
+   established centered 860px workspace. */
+@media (min-width:701px) and (max-aspect-ratio:4/3){
+  .app{
+    width:calc(100% - 40px) !important;
+    max-width:none !important;
+    margin-left:20px !important;
+    margin-right:20px !important;
+    padding-left:16px !important;
+    padding-right:16px !important;
+  }
+  .app>.nav{
+    width:calc(100% - 40px) !important;
+    max-width:none !important;
+  }
+  .app>.fab{
+    right:38px !important;
+  }
+}
+@media (min-width:701px) and (max-width:900px){
+  .app{
+    width:calc(100% - 32px) !important;
+    max-width:none !important;
+    margin-left:16px !important;
+    margin-right:16px !important;
+  }
+  .app>.nav{width:calc(100% - 32px) !important}
+  .app>.fab{right:32px !important}
+}
+
 </style>
 
 <link rel="manifest" href="./manifest.webmanifest">
@@ -1053,7 +1086,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.71 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.72 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
