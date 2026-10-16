@@ -145,7 +145,8 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.modal::-webkit-scrollbar,.modal
 .pulse-insight{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--amber);font:inherit;text-align:left;padding:10px 2px;cursor:pointer;line-height:1.45}.pulse-insight:last-child{border-bottom:0}
 .pulse-detail{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
  .pulse-type-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin:8px 0 14px}
-.pulse-type-chip{display:flex;align-items:center;gap:9px;min-height:54px;padding:9px 10px;border:1px solid var(--line-soft);border-radius:9px;background:rgba(255,190,55,.025);color:var(--text)}
+.pulse-type-chip{display:flex;align-items:center;gap:9px;min-height:54px;padding:9px 10px;border:1px solid var(--line-soft);border-radius:9px;background:rgba(255,190,55,.025);color:var(--text);cursor:pointer;text-align:left;font:inherit}
+.pulse-type-chip:hover,.pulse-type-chip.active{border-color:var(--bright);background:rgba(255,190,55,.09)}
 .pulse-type-chip .pulse-type-icon{font-size:20px;line-height:1}
 .pulse-type-chip b{display:block;color:var(--bright);font-size:17px}.pulse-type-chip .small{display:block;margin-top:1px}
 @media(max-width:520px){.pulse-type-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.pulse-type-chip{min-height:48px;padding:7px 8px}.pulse-type-chip .pulse-type-icon{font-size:18px}}
@@ -534,6 +535,7 @@ function App(){
  const [logRange,setLogRange]=useState("30");
  const [logLimit,setLogLimit]=useState(30);
  const [pulseDetail,setPulseDetail]=useState(null);
+ const [pulseWeekFilter,setPulseWeekFilter]=useState(null);
  const [initiativePortfolioFilter,setInitiativePortfolioFilter]=useState("Activa");
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
@@ -1097,7 +1099,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.75 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.76 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1175,7 +1177,7 @@ function App(){
    </div>
    <div className="section-title"><span>&gt; RITMO // 4 SEMANAS</span><span>ACTIVIDADES</span></div>
    <div className="card">
-    {pulseWeeks.map((w,i)=><button key={w.start} className="pulse-week" onClick={()=>setPulseDetail(`week:${i}`)}>
+    {pulseWeeks.map((w,i)=><button key={w.start} className="pulse-week" onClick={()=>{setPulseWeekFilter(null);setPulseDetail(`week:${i}`)}}>
       <span className="small">{w.label}</span><span className="pulse-bar"><i style={{width:`${Math.max(3,w.items.length/pulseMax*100)}%`}}></i></span><b>{w.items.length}</b>
     </button>)}
    </div>
@@ -1207,6 +1209,13 @@ function App(){
         .filter(x=>x.count>0)
       ];
      })():null;
+    const weekFilteredItems=(pulseDetail.startsWith("week:")&&items)?(
+      pulseWeekFilter==="__accounts"
+       ? [...new Set(items.map(a=>a.empresaId||(db.contactos||[]).find(c=>c.id===a.contactoId)?.empresaId).filter(Boolean))].map(id=>emp(id)).filter(Boolean)
+       : pulseWeekFilter
+         ? items.filter(a=>a.tipo===pulseWeekFilter)
+         : items
+     ):items;
     if(pulseDetail==="initiatives"){
      const all=(db.iniciativas||[]), filtered=all.filter(i=>i.estado===initiativePortfolioFilter);
      const counts={Activa:all.filter(i=>i.estado==="Activa").length,Pausada:all.filter(i=>i.estado==="Pausada").length,Cerrada:all.filter(i=>i.estado==="Cerrada").length};
@@ -1218,13 +1227,14 @@ function App(){
     }
     return <div className="pulse-detail">
      <div className="section-title"><span>&gt; {title}</span><button className="btn dim" onClick={()=>setPulseDetail(null)}>CERRAR</button></div>
-     {weekTypeSummary&&<div className="pulse-type-summary">{weekTypeSummary.map(x=><div className="pulse-type-chip" key={x.type}><span className="pulse-type-icon">{x.icon}</span><span><b>{x.count}</b><span className="small">{x.label}</span></span></div>)}</div>}
+     {weekTypeSummary&&<div className="pulse-type-summary">{weekTypeSummary.map(x=><button type="button" className={`pulse-type-chip ${pulseWeekFilter===x.type?"active":""}`} key={x.type} onClick={()=>setPulseWeekFilter(pulseWeekFilter===x.type?null:x.type)}><span className="pulse-type-icon">{x.icon}</span><span><b>{x.count}</b><span className="small">{x.label}</span></span></button>)}</div>}
      {pulseDetail.startsWith("initiative:")&&<div className="actions" style={{marginBottom:"8px"}}><button className="btn primary" onClick={()=>setModal({viewInitiative:pulseDetail.split(":")[1]})}>ABRIR INICIATIVA →</button></div>}
-     {!items?.length?<div className="empty">SIN REGISTROS.</div>:
-      (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?items.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
-      (pulseDetail==="overdue"||pulseDetail==="upcoming")?items.map(t=><TaskCard key={t.id} t={t}/>):
-      pulseDetail==="pipeline"?items.map(o=><Opportunity key={o.id} o={o}/>):
-      items.map(a=>{const c=db.contactos.find(x=>x.id===a.contactoId);return <div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{c?.nombre||emp(a.empresaId)?.nombre||"SIN RELACIÓN"}</div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions">{c&&<button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button>}{a.empresaId&&<button className="btn dim" onClick={()=>setModal({viewCompany:a.empresaId})}>VER EMPRESA →</button>}</div></div>})}
+     {!weekFilteredItems?.length?<div className="empty">SIN REGISTROS.</div>:
+      pulseDetail.startsWith("week:")&&pulseWeekFilter==="__accounts"?weekFilteredItems.map(e=><div className="card" key={e.id}><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado||"SIN ESTADO"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewCompany:e.id})}>VER EMPRESA →</button></div></div>):
+      (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?weekFilteredItems.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} // {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} // PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
+      (pulseDetail==="overdue"||pulseDetail==="upcoming")?weekFilteredItems.map(t=><TaskCard key={t.id} t={t}/>):
+      pulseDetail==="pipeline"?weekFilteredItems.map(o=><Opportunity key={o.id} o={o}/>):
+      weekFilteredItems.map(a=>{const c=db.contactos.find(x=>x.id===a.contactoId);return <div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{c?.nombre||emp(a.empresaId)?.nombre||"SIN RELACIÓN"}</div><div className="meta">{a.nota||"SIN NOTA"}</div><div className="actions">{c&&<button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button>}{a.empresaId&&<button className="btn dim" onClick={()=>setModal({viewCompany:a.empresaId})}>VER EMPRESA →</button>}</div></div>})}
     </div>
    })()}
   </div>}
