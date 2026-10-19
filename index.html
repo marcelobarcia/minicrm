@@ -557,7 +557,7 @@ function App(){
  function toUI(rows){
   const empresas=rows.empresas.map(x=>({id:x.id,nombre:x.nombre,industria:x.industria||"",estado:x.estado||"Prospecto",potencial:x.potencial||"Medio"}));
   const contactos=rows.contactos.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,cargo:x.cargo||"",email:x.email||"",telefono:x.telefono||"",estado:x.estado||"Activo",potencial:x.potencial||"Medio",ultimo:x.ultimo_contacto||"",proximo:x.proximo_contacto||"",intereses:(x.intereses||"").split("|||").filter(Boolean),linkedin:z.linkedin||"",origen:z.origen||"",nota:z.nota||"",reportaA:x.reporta_a_id||"",rolDecision:x.rol_decision||"Sin definir",posicion:x.posicion||"Desconocida"}});
-  const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],iniciativaId:z.iniciativaId||"",proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||"",createdAt:x.created_at}});
+  const oportunidades=rows.oportunidades.map(x=>{const z=parseExtra(x.observaciones);return {id:x.id,empresaId:x.empresa_id||"",nombre:x.nombre,etapa:x.etapa||"Lead",valor:Number(x.monto||0),probabilidad:Number(z.probabilidad||0),cierre:z.cierre||"",contactos:z.contactos||[],iniciativaId:z.iniciativaId||"",proxima:x.proxima_accion||"",fecha:x.fecha_proxima_accion||"",nota:z.nota||"",motivo_nurturing:z.motivo_nurturing||"",fecha_reactivacion:z.fecha_reactivacion||"",_extra:z,createdAt:x.created_at}});
   const actividades=rows.actividades.map(x=>({id:x.id,fecha:x.fecha,tipo:x.tipo,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",iniciativaId:x.iniciativa_id||"",nota:x.nota||""}));
   const tareas=rows.tareas.map(x=>({id:x.id,texto:x.titulo,fecha:x.fecha||"",prioridad:x.prioridad||"Normal",empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||"",completada:!!x.completada,creada:x.created_at}));
   const notas=rows.notas.map(x=>({id:x.id,texto:x.texto,fecha:x.created_at,empresaId:x.empresa_id||"",contactoId:x.contacto_id||"",oportunidadId:x.oportunidad_id||""}));
@@ -622,7 +622,7 @@ function App(){
     const uid=session.user.id, em={}, cm={}, om={};
     for(const e of local.empresas){const {data,error}=await sb.from("empresas").insert({user_id:uid,nombre:e.nombre,industria:e.industria||null,estado:e.estado||null,potencial:e.potencial||null}).select().single();if(error)throw error;em[e.id]=data.id}
     for(const c of local.contactos){const {data,error}=await sb.from("contactos").insert({user_id:uid,empresa_id:em[c.empresaId]||null,nombre:c.nombre,cargo:c.cargo||null,email:c.email||null,telefono:c.telefono||null,estado:c.estado||null,potencial:c.potencial||null,ultimo_contacto:c.ultimo||null,proximo_contacto:c.proximo||null,intereses:(c.intereses||[]).join("|||"),observaciones:JSON.stringify({linkedin:c.linkedin||"",origen:c.origen||"",nota:c.nota||""})}).select().single();if(error)throw error;cm[c.id]=data.id}
-    for(const o of local.oportunidades){const {data,error}=await sb.from("oportunidades").insert({user_id:uid,empresa_id:em[o.empresaId]||null,nombre:o.nombre,etapa:o.etapa||"Lead",monto:Number(o.valor||0),moneda:"USD",proxima_accion:o.proxima||null,fecha_proxima_accion:o.fecha||null,observaciones:JSON.stringify({probabilidad:o.probabilidad||0,cierre:o.cierre||"",contactos:(o.contactos||[]).map(x=>cm[x]).filter(Boolean),nota:o.nota||""})}).select().single();if(error)throw error;om[o.id]=data.id}
+    for(const o of local.oportunidades){const {data,error}=await sb.from("oportunidades").insert({user_id:uid,empresa_id:em[o.empresaId]||null,nombre:o.nombre,etapa:o.etapa||"Lead",monto:Number(o.valor||0),moneda:"USD",proxima_accion:o.proxima||null,fecha_proxima_accion:o.fecha||null,observaciones:JSON.stringify({...o._extra,motivo_nurturing:o.motivo_nurturing||"",fecha_reactivacion:o.fecha_reactivacion||"",probabilidad:o.probabilidad||0,cierre:o.cierre||"",contactos:(o.contactos||[]).map(x=>cm[x]).filter(Boolean),nota:o.nota||""})}).select().single();if(error)throw error;om[o.id]=data.id}
     for(const a of local.actividades){const {error}=await sb.from("actividades").insert({user_id:uid,empresa_id:em[a.empresaId]||null,contacto_id:cm[a.contactoId]||null,oportunidad_id:om[a.oportunidadId]||null,tipo:a.tipo,fecha:a.fecha||today,nota:a.nota||null});if(error)throw error}
     for(const t of (local.tareas||[])){const {error}=await sb.from("tareas").insert({user_id:uid,empresa_id:em[t.empresaId]||null,contacto_id:cm[t.contactoId]||null,oportunidad_id:om[t.oportunidadId]||null,titulo:t.texto,fecha:t.fecha||null,prioridad:t.prioridad||"Normal",completada:!!t.completada});if(error)throw error}
     for(const n of (local.notas||[])){const {error}=await sb.from("notas").insert({user_id:uid,empresa_id:em[n.empresaId]||null,contacto_id:cm[n.contactoId]||null,oportunidad_id:om[n.oportunidadId]||null,texto:n.texto});if(error)throw error}
@@ -638,7 +638,7 @@ function App(){
   ...db.empresas.filter(e=>norm([e.nombre,e.industria,e.estado,e.potencial].join(" ")).includes(gs)).slice(0,6).map(e=>({kind:"EMPRESA",title:e.nombre,meta:[e.industria,e.estado,"Potencial "+e.potencial].filter(Boolean).join(" // "),open:()=>setModal({viewCompany:e.id})})),
   ...(db.radar||[]).filter(r=>norm([r.nombre,r.sector,r.sistema,r.confianza,r.estado,r.notas,...(r.evidencias||[]).map(e=>[e.titulo,e.fuente].join(" "))].join(" ")).includes(gs)).slice(0,6).map(r=>({kind:"RADAR",title:r.nombre,meta:[r.sistema||"Sistema sin inferir",r.confianza,r.estado].join(" // "),open:()=>setModal({viewRadar:r.id})})),
   ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" // "),open:()=>setModal({viewContact:c.id})})),
-  ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.proxima].filter(Boolean).join(" // "),open:()=>setModal({viewOpp:o.id})})),
+  ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,o.motivo_nurturing,o.fecha_reactivacion,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.etapa==="Nurturing"?o.motivo_nurturing:o.proxima,o.fecha_reactivacion].filter(Boolean).join(" // "),open:()=>setModal({viewOpp:o.id})})),
   ...(db.iniciativas||[]).filter(i=>norm([i.nombre,i.tipo,i.objetivo,i.estado,emp(i.empresaId)?.nombre,db.contactos.find(c=>c.id===i.contactoId)?.nombre,...(i.cuentas||[]).map(c=>emp(c.empresaId)?.nombre||"")].join(" ")).includes(gs)).slice(0,6).map(i=>({kind:"INICIATIVA",title:i.nombre,meta:[i.tipo,emp(i.empresaId)?.nombre,i.estado,i.proximoStatus?`STATUS ${i.proximoStatus}`:""].filter(Boolean).join(" // "),open:()=>setModal({viewInitiative:i.id})})),
   ...(db.triggers||[]).filter(t=>norm([t.titulo,t.tipo,t.descripcion,t.fuente,t.relevancia,emp(t.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(t=>({kind:"TRIGGER",title:t.titulo,meta:[emp(t.empresaId)?.nombre,t.tipo,t.relevancia,t.estado].filter(Boolean).join(" // "),open:()=>t.oportunidadId?setModal({viewOpp:t.oportunidadId}):t.empresaId?setModal({viewCompany:t.empresaId}):setTab("hoy")})),
   ...(db.tareas||[]).filter(t=>norm([t.texto,t.fecha,t.prioridad,t.completada?"completada hecho":"pendiente abierta",emp(t.empresaId)?.nombre,db.contactos.find(c=>c.id===t.contactoId)?.nombre,db.oportunidades.find(o=>o.id===t.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(t=>({kind:"TAREA",title:t.texto||"TAREA",meta:[emp(t.empresaId)?.nombre,db.contactos.find(c=>c.id===t.contactoId)?.nombre,t.fecha,t.prioridad,t.completada?"COMPLETADA":"PENDIENTE"].filter(Boolean).join(" // "),open:()=>setModal({editTask:t.id})})),
@@ -648,10 +648,10 @@ function App(){
  const hasFollowupTask=o=>(db.tareas||[]).some(t=>!t.completada&&t.oportunidadId===o.id&&t.fecha===o.fecha&&norm(t.texto)===norm(o.proxima));
  // HOY is action-first: when the opportunity next step already exists as a pending task,
  // show only the task here. The opportunity remains available in PIPELINE and from the task itself.
- const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
- const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o));
+ const vencidas=db.oportunidades.filter(o=>o.fecha && o.fecha<today && !["Ganada","Perdida","Nurturing"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const hoy=db.oportunidades.filter(o=>o.fecha===today && !["Ganada","Perdida","Nurturing"].includes(o.etapa)&&!hasFollowupTask(o));
  const in7=new Date(); in7.setDate(in7.getDate()+7); const next7=localISODate(in7);
- const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+ const proximas=db.oportunidades.filter(o=>o.fecha>today && o.fecha<=next7 && !["Ganada","Perdida","Nurturing"].includes(o.etapa)&&!hasFollowupTask(o)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const reconectar=[...db.contactos].filter(c=>c.ultimo && daysSince(c.ultimo)>=45 && (!c.proximo || c.proximo<=next7)).sort((a,b)=>{
    const score=x=>(x.potencial==="Alto"?100:x.potencial==="Medio"?50:0)+Math.min(daysSince(x.ultimo),365);
    return score(b)-score(a);
@@ -689,7 +689,9 @@ function App(){
  const tareasVencidas=tareasActivas.filter(t=>t.fecha && t.fecha<today).sort((a,b)=>a.fecha.localeCompare(b.fecha));
  const tareasHoy=tareasActivas.filter(t=>t.fecha===today);
  const tareas7=tareasActivas.filter(t=>t.fecha>today && t.fecha<=next7).sort((a,b)=>a.fecha.localeCompare(b.fecha));
- const pipelineValue=db.oportunidades.reduce((s,o)=>s+(+o.valor||0),0);
+ const nurturing=db.oportunidades.filter(o=>o.etapa==="Nurturing");
+ const reactivar=nurturing.filter(o=>o.fecha_reactivacion&&minusDaysISO(o.fecha_reactivacion,30)<=today).sort((a,b)=>a.fecha_reactivacion.localeCompare(b.fecha_reactivacion));
+ const pipelineValue=db.oportunidades.filter(o=>!["Ganada","Perdida","Nurturing"].includes(o.etapa)).reduce((s,o)=>s+(+o.valor||0),0);
  const filteredContacts=db.contactos.filter(c=>(c.nombre+" "+(emp(c.empresaId)?.nombre||"")+" "+c.intereses.join(" ")).toLowerCase().includes(q.toLowerCase()));
 
 
@@ -1009,7 +1011,7 @@ function App(){
   const contactos=[...ev.currentTarget.querySelectorAll('input[name="oppContact"]:checked')].map(x=>x.value);
   const row={empresa_id:f.get("empresaId")||null,nombre:f.get("nombre").trim(),etapa:f.get("etapa"),monto:Number(f.get("valor")||0),moneda:"USD",
     proxima_accion:f.get("proxima").trim()||null,fecha_proxima_accion:f.get("fecha")||null,
-    observaciones:JSON.stringify({probabilidad:Number(f.get("probabilidad")||0),cierre:f.get("cierre")||"",contactos,iniciativaId:f.get("iniciativaId")||"",nota:f.get("nota").trim()})};
+    observaciones:JSON.stringify({...db.oportunidades.find(o=>o.id===modal.editOpp)?._extra,motivo_nurturing:(f.get("motivo_nurturing")||"").trim(),fecha_reactivacion:f.get("fecha_reactivacion")||"",probabilidad:Number(f.get("probabilidad")||0),cierre:f.get("cierre")||"",contactos,iniciativaId:f.get("iniciativaId")||"",nota:f.get("nota").trim()})};
   const q=(modal.editOpp?sb.from("oportunidades").update(row).eq("id",modal.editOpp):sb.from("oportunidades").insert({...row,user_id:session.user.id})).select().single();
   const {data,error}=await q;if(await cloudError(error))return;applyCloudRows([["oportunidades",data]]);setModal(false);
  }
@@ -1020,6 +1022,7 @@ function App(){
  }
  async function moveStage(id,dir){
   const stages=["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"],o=db.oportunidades.find(x=>x.id===id);if(!o)return;
+  if(o.etapa==="Nurturing"){setModal({editOpp:id});return;}
   let i=stages.indexOf(o.etapa);i=Math.max(0,Math.min(stages.length-1,i+dir));
   const {error}=await sb.from("oportunidades").update({etapa:stages[i]}).eq("id",id);if(!(await cloudError(error)))await loadCloud();
  }
@@ -1090,16 +1093,17 @@ function App(){
    </div>
   </>;
  };
+ const NurturingInfo=({o})=>{const last=db.actividades.filter(a=>a.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];return <div className="meta nurturing-info">MOTIVO: {o.motivo_nurturing||"SIN MOTIVO"}<br/>REACTIVAR: {o.fecha_reactivacion||"SIN FECHA"}{last&&<><br/>ÚLTIMO TOQUE: {last.fecha} // {last.tipo}</>}</div>};
  const Opportunity=({o})=><div className="card">
    <div className="row"><div><div className="title">{emp(o.empresaId)?.nombre}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div>
-   <div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>
+   {o.etapa==="Nurturing"?<NurturingInfo o={o}/>:<div className="meta">PROX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&`// ${o.fecha}`}<br/>PROB: {o.probabilidad||0}% {o.cierre&&`// CIERRE: ${o.cierre}`}</div>}
    <div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR</button><button className="btn" onClick={()=>setModal({opp:o.id})}>REGISTRAR</button></div>
  </div>;
  return <div className="app crt">
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.79 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.80 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1124,6 +1128,7 @@ function App(){
     <div className="stat"><b>{hoy.length+tareasHoy.length}</b><span className="small">HOY</span></div>
     <div className="stat"><b>{proximas.length+tareas7.length}</b><span className="small">7 DÍAS</span></div>
    </div>
+   <div className="section"><div className="section-title"><span>REACTIVAR OPORTUNIDADES</span><span>{reactivar.length}</span></div><div className="small">DESDE 30 DÍAS ANTES DE LA FECHA DE REACTIVACIÓN.</div>{reactivar.map(o=><Opportunity key={o.id} o={o}/>)}{!reactivar.length&&<div className="empty">SIN OPORTUNIDADES EN VENTANA.</div>}</div>
    <div className={`section hoy-section ${hoyOpen==="overdue"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="overdue"?null:"overdue")}><span><span className="section-chevron">{hoyOpen==="overdue"?"▼":"▶"}</span>VENCIDAS</span><span className="hoy-section-count">{tareasVencidas.length}</span></div>
     {hoyOpen==="overdue"&&<>{tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{!tareasVencidas.length&&<div className="empty">SIN TAREAS VENCIDAS.</div>}</>}
@@ -1248,10 +1253,10 @@ function App(){
     </div>}
   {tab==="pipe"&&<div className="section"><div className="section-title"><span>&gt; PIPELINE</span><button className="btn primary" onClick={()=>setModal({newOpp:true})}>+ NUEVA OPORTUNIDAD</button></div><div className="pipeline">
    {["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(stage=><div className="stage" key={stage}><div className="stage-head">[{stage.toUpperCase()}] // {db.oportunidades.filter(o=>o.etapa===stage).length}</div>{db.oportunidades.filter(o=>o.etapa===stage).map(o=><Opportunity key={o.id} o={o}/>)}{!db.oportunidades.some(o=>o.etapa===stage)&&<div className="empty">--</div>}</div>)}
-  </div></div>}
+  </div><details className="section nurturing-section"><summary className="stage-head">[NURTURING] // {nurturing.length}</summary>{nurturing.map(o=><Opportunity key={o.id} o={o}/>)}{!nurturing.length&&<div className="empty">SIN OPORTUNIDADES EN NURTURING.</div>}</details></div>}
   {tab==="emp"&&<div className="section"><div className="section-title"><span>&gt; EMPRESAS</span><button className="btn primary" onClick={()=>setModal({newCompany:true})}>+ NUEVA</button></div>
    <div className="small" style={{marginBottom:"8px"}}>{db.empresas.length} EMPRESAS // USA EL BUSCADOR UNIVERSAL DEL HEADER PARA ENCONTRAR UNA EMPRESA.</div>
-   {db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
+   {db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><div className="card" key={e.id}><div className="row"><div><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} // {e.estado} // POTENCIAL {e.potencial}</div></div><span className="tag">{db.oportunidades.filter(o=>o.empresaId===e.id&&!["Ganada","Perdida","Nurturing"].includes(o.etapa)).length} OPORT.</span></div><hr/><div className="small">CONTACTOS: {db.contactos.filter(c=>c.empresaId===e.id).map(c=>c.nombre).join(", ")||"—"}</div><div className="small">NOTAS: {(db.notas||[]).filter(n=>n.empresaId===e.id).length} // TAREAS ABIERTAS: {(db.tareas||[]).filter(t=>t.empresaId===e.id&&!t.completada).length}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewCompany:e.id})}>ABRIR</button><button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button></div></div>)}
     </div>}
   {tab==="radar"&&<div className="section"><div className="section-title"><span>&gt; RADAR</span><button className="btn primary" onClick={()=>setModal({newRadar:true})}>+ NUEVO RADAR</button></div>
    <div className="small" style={{marginBottom:"8px"}}>{(db.radar||[]).length} ORGANIZACIONES // INTELIGENCIA PREVIA A LA ACTIVACIÓN COMERCIAL.</div>
@@ -1480,7 +1485,8 @@ function App(){
        <form onSubmit={saveOpportunity}>
         <OpportunityContactPicker o={o} selected={selected}/>
         <label>OPORTUNIDAD *</label><input name="nombre" required defaultValue={o.nombre||""} placeholder="Ej: Oracle ERP Cloud"/>
-        <label>ETAPA</label><select name="etapa" defaultValue={o.etapa||"Lead"}>{["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(x=><option key={x}>{x}</option>)}</select>
+        <label>ETAPA</label><select name="etapa" defaultValue={o.etapa||"Lead"}>{["Lead","Discovery","Propuesta","Negociación","Decisión","Nurturing","Ganada","Perdida"].map(x=><option key={x}>{x}</option>)}</select>
+        <fieldset><legend>NURTURING</legend><label>MOTIVO DE NURTURING</label><input name="motivo_nurturing" list="nurturing-motivos" defaultValue={o.motivo_nurturing||""}/><datalist id="nurturing-motivos">{["Sin necesidad actual","Presupuesto futuro","Proyecto postergado","Revisar próximo año","Otro"].map(x=><option key={x} value={x}/>)}</datalist><label>FECHA DE REACTIVACIÓN</label><input name="fecha_reactivacion" type="date" defaultValue={o.fecha_reactivacion||""}/><div className="small">EN NURTURING, HOY AVISA DESDE 30 DÍAS ANTES. PARA REACTIVAR, CAMBIA LA ETAPA A UNA ACTIVA.</div></fieldset>
         <label>VALOR ESTIMADO</label><input name="valor" type="number" min="0" step="1" defaultValue={o.valor||0}/>
         <label>PROBABILIDAD %</label><input name="probabilidad" type="number" min="0" max="100" defaultValue={o.probabilidad||20}/>
         <label>CIERRE ESTIMADO</label><input name="cierre" type="date" defaultValue={o.cierre||""}/>
@@ -1498,7 +1504,7 @@ function App(){
       const oppTasks=(db.tareas||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
       return <><div className="section-title"><span>&gt; OPORTUNIDAD</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <div className="title" style={{fontSize:"20px"}}>{e?.nombre}</div><div>{o.nombre}</div>
-       <div><span className="tag">{o.etapa}</span><span className="tag">PROB {o.probabilidad||0}%</span>{o.valor>0&&<span className="tag">${Number(o.valor).toLocaleString("es-CL")}</span>}</div>{o.iniciativaId&&<div className="meta">INICIATIVA: {(db.iniciativas||[]).find(i=>i.id===o.iniciativaId)?.nombre||"—"}</div>}
+       {o.etapa==="Nurturing"&&<NurturingInfo o={o}/>}<div><span className="tag">{o.etapa}</span><span className="tag">PROB {o.probabilidad||0}%</span>{o.valor>0&&<span className="tag">${Number(o.valor).toLocaleString("es-CL")}</span>}</div>{o.iniciativaId&&<div className="meta">INICIATIVA: {(db.iniciativas||[]).find(i=>i.id===o.iniciativaId)?.nombre||"—"}</div>}
        <div className="meta">CIERRE: {o.cierre||"—"}<br/>PRÓXIMA ACCIÓN: {o.proxima||"SIN DEFINIR"} // {o.fecha||"SIN FECHA"}</div>
        <hr/><div className="small">CONTACTOS</div><div>{cs.length?cs.map(c=><span className="tag" key={c.id}>{c.nombre}</span>):"—"}</div>
        <hr/><div className="section-title"><span>&gt; MAPA DE DECISIÓN</span><span>{cs.length} EN OPORTUNIDAD</span></div>
@@ -1660,7 +1666,7 @@ function App(){
       const contextContact=contextContactId?db.contactos.find(c=>c.id===contextContactId):null;
       const contextOpp=modal.opp?db.oportunidades.find(o=>o.id===modal.opp):null;
       const contactOpps=contextContactId?db.oportunidades.filter(o=>(o.contactos||[]).includes(contextContactId)):[];
-      const activeContactOpps=contactOpps.filter(o=>!["Ganada","Perdida"].includes(o.etapa));
+      const activeContactOpps=contactOpps.filter(o=>!["Ganada","Perdida","Nurturing"].includes(o.etapa));
       const autoOppId=a?.oportunidadId||modal.opp||(activeContactOpps.length===1?activeContactOpps[0].id:"");
       const autoOpp=autoOppId?db.oportunidades.find(o=>o.id===autoOppId):null;
       const autoCompanyId=a?.empresaId||modal.company||contextContact?.empresaId||contextOpp?.empresaId||autoOpp?.empresaId||"";
