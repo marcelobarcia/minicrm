@@ -510,6 +510,10 @@ function localISODate(d=new Date()){
  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
  return `${y}-${m}-${day}`;
 }
+function calendarPulseWeeks(activities,anchor){
+ const monday=new Date(anchor+'T12:00:00Z');monday.setUTCDate(monday.getUTCDate()-(monday.getUTCDay()+6)%7);
+ return [3,2,1,0].map(back=>{const start=new Date(monday);start.setUTCDate(start.getUTCDate()-back*7);const end=new Date(start);end.setUTCDate(end.getUTCDate()+6);const sy=start.toISOString().slice(0,10),ey=end.toISOString().slice(0,10);return {label:back===0?'ESTA SEM':`SEM -${back}`,start:sy,end:ey,items:activities.filter(a=>a.fecha>=sy&&a.fecha<=ey&&a.fecha<=anchor)}});
+}
 const today=localISODate();
 function load(){
  try{
@@ -675,12 +679,7 @@ function App(){
    const created=(o.createdAt||"").slice(0,10); return created&&created>=pulseStart&&created<=today;
  });
  const pulsePct=pulseContacts.length?Math.round(pulseWithNext.length*100/pulseContacts.length):0;
- const pulseWeeks=[3,2,1,0].map(back=>{
-   const end=new Date();end.setHours(0,0,0,0);end.setDate(end.getDate()-back*7);
-   const start=new Date(end);start.setDate(start.getDate()-6);
-   const sy=localISODate(start),ey=localISODate(end);
-   return {label:back===0?"ESTA SEM":`SEM -${back}`,start:sy,end:ey,items:pulseActivities.filter(a=>a.fecha>=sy&&a.fecha<=ey)};
- });
+ const pulseWeeks=calendarPulseWeeks(pulseActivities,today);
  const pulseMax=Math.max(1,...pulseWeeks.map(w=>w.items.length));
  const pulseInitiatives=(db.iniciativas||[]).map(i=>{const acts=pulseActivities.filter(a=>a.iniciativaId===i.id);const opps=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id);return {i,acts,opps}}).filter(x=>x.acts.length||x.opps.length).sort((a,b)=>b.acts.length-a.acts.length);
  const pulseUnattributed=pulseActivities.filter(a=>!a.iniciativaId);
@@ -1103,7 +1102,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.80 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.81 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
