@@ -474,6 +474,7 @@ hr{border-top:1px solid var(--line-soft)}
 .touch-kind{position:absolute;top:64px;left:-4px;right:-4px;font-size:10px;line-height:1.2;color:var(--text);white-space:normal;text-transform:uppercase}
 @media(max-width:700px){.touch-timeline{height:104px;margin:0}.touch-timeline-wrap{padding-left:10px;padding-right:10px}.touch-point{width:92px}.touch-kind{font-size:9px}}
 
+/* V0.83 — Active initiative status list without 7-day limit */
 /* V0.82 — Initiative account progress grouped by state */
 .initiative-progress-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;margin:8px 0 12px}
 .initiative-progress-chip{border:1px solid var(--line-soft);background:rgba(232,163,26,.025);border-radius:8px;padding:8px 9px;min-width:0}
@@ -678,7 +679,7 @@ function App(){
 
 
  const tenderRenewals=(db.licitaciones||[]).map(t=>({...t,renewalDate:minusDaysISO(t.fin,t.prepararDias)})).filter(t=>t.fin&&t.renewalDate&&t.renewalDate<=next7&&t.fin>=today).sort((a,b)=>a.renewalDate.localeCompare(b.renewalDate));
- const initiativeStatuses=(db.iniciativas||[]).filter(i=>i.estado==="Activa"&&i.proximoStatus&&i.proximoStatus<=next7).sort((a,b)=>a.proximoStatus.localeCompare(b.proximoStatus));
+ const initiativeStatuses=(db.iniciativas||[]).filter(i=>i.estado==="Activa"&&i.proximoStatus).sort((a,b)=>a.proximoStatus.localeCompare(b.proximoStatus));
  // PULSO COMERCIAL // rolling 30 days + four 7-day rhythm buckets.
  const pulseStart=(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-29);return localISODate(d)})();
  const pulseActivities=(db.actividades||[]).filter(a=>a.fecha&&a.fecha>=pulseStart&&a.fecha<=today);
@@ -1117,7 +1118,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.82 PWA</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM // v0.83 PWA</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>{cloudStatus==="CONECTADO"?"SUPABASE ●":"SUPABASE ○"}</div>
@@ -1157,7 +1158,7 @@ function App(){
    </div>
    <div className={`section hoy-section ${hoyOpen==="status"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="status"?null:"status")}><span><span className="section-chevron">{hoyOpen==="status"?"▼":"▶"}</span>STATUS COMERCIALES</span><span className="hoy-section-count">{initiativeStatuses.length}</span></div>
-    {hoyOpen==="status"&&<>{initiativeStatuses.length?initiativeStatuses.map(i=><div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{emp(i.empresaId)?.nombre||"SIN PARTNER"} // {i.cuentas.length} CUENTAS</div></div><span className="tag">STATUS</span></div><div className="meta">FECHA: {i.proximoStatus} // {i.objetivo||"SIN OBJETIVO"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN STATUS EN LOS PRÓXIMOS 7 DÍAS.</div>}</>}
+    {hoyOpen==="status"&&<>{initiativeStatuses.length?initiativeStatuses.map(i=><div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div>{emp(i.empresaId)?.nombre||"SIN PARTNER"} // {i.cuentas.length} CUENTAS</div></div><span className="tag">STATUS</span></div><div className="meta">FECHA: {i.proximoStatus} // {i.objetivo||"SIN OBJETIVO"}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN INICIATIVAS ACTIVAS CON PRÓXIMO STATUS.</div>}</>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="renewals"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="renewals"?null:"renewals")}><span><span className="section-chevron">{hoyOpen==="renewals"?"▼":"▶"}</span>RENOVACIONES / CONTRATOS</span><span className="hoy-section-count">{tenderRenewals.length}</span></div>
