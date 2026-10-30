@@ -816,6 +816,148 @@ header{padding:10px 14px}
 .task-done-detail .btn{padding:5px 9px;font-size:12px}
 @media(max-width:520px){.task-done-detail{padding-left:12px}}
 </style>
+<style id="motion-v089">
+/* V0.89 — Subtle macOS-style motion. Only elements that mount once per user action are
+   animated (sheets, tab content, opened sections, details); cards are not, because they
+   re-render often and would flicker. Everything is disabled under "reduce motion". */
+:root{--ease-out:cubic-bezier(.2,.8,.2,1)}
+@keyframes m-fade{from{opacity:0}to{opacity:1}}
+@keyframes m-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes m-sheet{from{opacity:.4;transform:translateY(48px)}to{opacity:1;transform:none}}
+@keyframes m-pop{from{opacity:0;transform:scale(.965)}to{opacity:1;transform:none}}
+@keyframes m-drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes m-icon{0%{transform:scale(1)}40%{transform:scale(1.18) translateY(-1.5px)}100%{transform:scale(1)}}
+@keyframes m-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes m-breathe{0%,100%{opacity:.55}50%{opacity:1}}
+
+/* Sheets and dialogs */
+.app>.overlay{animation:m-fade .2s ease-out both}
+.app>.overlay .modal{animation:m-sheet .34s var(--ease-out) both}
+@media(min-width:701px){.app>.overlay .modal{animation:m-pop .26s var(--ease-out) both}}
+.app>.overlay[style] .modal{animation:m-pop .22s var(--ease-out) both}
+.login-box{animation:m-pop .3s var(--ease-out) both}
+/* Loading screens (title + one status line) breathe while syncing */
+.login-shell .login-box>.title+.meta:last-child{animation:m-breathe 1.6s ease-in-out infinite}
+
+/* Tab content enters with a short stagger */
+.app>.stats,.app>.section{animation:m-rise .38s var(--ease-out) both}
+.app>.stats+.stats{animation-delay:.03s}
+.app>.section:nth-child(4){animation-delay:.03s}
+.app>.section:nth-child(5){animation-delay:.06s}
+.app>.section:nth-child(6){animation-delay:.09s}
+.app>.section:nth-child(7){animation-delay:.12s}
+.app>.section:nth-child(8){animation-delay:.15s}
+.app>.section:nth-child(9){animation-delay:.18s}
+.app>.section:nth-child(n+10){animation-delay:.21s}
+
+/* Opening things */
+.hoy-body{animation:m-rise .26s var(--ease-out) both}
+.hoy-section .section-chevron{display:inline-block;transition:transform .2s var(--ease-out)}
+.done-group[open]>summary~*,.task-done[open]>summary~*,.initiative-account-group[open]>summary~*,.nurturing-section[open]>summary~*{animation:m-rise .24s var(--ease-out) both}
+.global-search-results{animation:m-drop .18s var(--ease-out) both}
+.pulse-detail{animation:m-rise .28s var(--ease-out) both}
+.pulse-bar i{transform-origin:left center;animation:m-bar .7s var(--ease-out) both}
+.app>.nav button.active .nav-ico{animation:m-icon .38s var(--ease-out)}
+
+/* Micro-interactions */
+.app>.fab{transition:transform .25s var(--ease-out),background .15s ease,box-shadow .2s ease}
+.app>.fab:hover{transform:rotate(90deg) scale(1.04)}
+.app>.fab:active{transform:rotate(90deg) scale(.94)}
+.ent-card{transition:border-color .2s ease,background .2s ease}
+.ent-card:hover{border-color:rgba(255,255,255,.13)}
+.chip{transition:background .15s ease,transform .12s ease}
+.chip:active{transform:scale(.96)}
+.stat,.pulse-stat{transition:background .15s ease,border-color .15s ease,transform .12s ease}
+.pulse-stat:active{transform:scale(.98)}
+.done-group>summary::before,.task-done-chev::before{transition:transform .2s var(--ease-out)}
+
+/* V0.90 — Red list, segmented controls, contact sheet tabs */
+.red-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 8px}
+.red-filter{flex:1 1 220px;min-width:0;padding:8px 11px}
+.seg{display:inline-flex;background:rgba(255,255,255,.06);border-radius:9px;padding:2px;gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:transparent;color:var(--text);font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:7px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .15s ease,color .15s ease}
+.seg button:hover{color:var(--bright)}
+.seg button.on{background:rgba(255,255,255,.17);color:var(--bright);box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.seg button:focus-visible{outline:none;box-shadow:var(--focus)}
+.seg-count{font-size:11px;color:var(--dim);background:rgba(255,255,255,.09);border-radius:999px;padding:0 6px;line-height:17px;font-variant-numeric:tabular-nums}
+.seg-tabs{display:flex;width:100%;margin:14px 0 10px}
+.seg-tabs button{flex:1}
+.tab-panel{animation:m-rise .24s var(--ease-out) both}
+.red-caption{margin:0 2px 8px}
+.contact-row{display:flex;align-items:center;gap:11px;padding:8px;min-height:56px;border-radius:10px;cursor:pointer;transition:background .15s ease}
+.contact-row+.contact-row{border-top:1px solid var(--line-soft)}
+.contact-row:hover{background:rgba(255,255,255,.05)}
+.contact-row:focus-visible{outline:none;box-shadow:var(--focus)}
+.contact-row-main{flex:1;min-width:0}
+.contact-row-name{color:var(--bright);font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact-row-sub{color:var(--dim);font-size:12.5px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact-row-side{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.contact-row-ago{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#636366;flex:0 0 auto}
+.status-ok{background:var(--success)}
+.status-late{background:#ff9f0a}
+.row-quick{flex:0 0 auto;width:28px;height:28px;border-radius:50%;border:0;background:rgba(10,132,255,.14);color:var(--amber);font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease,color .15s ease}
+.row-quick:hover{background:var(--amber);color:#fff}
+.letter-head{position:sticky;top:0;z-index:2;background:rgba(30,30,33,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--dim);font-size:12px;font-weight:700;padding:5px 9px;margin:8px 0 2px;border-radius:7px;scroll-margin-top:8px}
+.az-wrap{display:grid;grid-template-columns:minmax(0,1fr) 20px;gap:4px}
+.az-index{position:sticky;top:10px;align-self:start;display:flex;flex-direction:column;align-items:center;padding:4px 0}
+.az-index button{border:0;background:none;color:var(--amber);font-size:10.5px;font-weight:600;padding:1px 4px;line-height:1.3;cursor:pointer;border-radius:4px}
+.az-index button:hover{background:var(--amber);color:#fff}
+.company-group{border-radius:11px;background:var(--fill);border:1px solid rgba(255,255,255,.06);margin:6px 0}
+.company-group>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:9px 11px;cursor:pointer;border-radius:11px}
+.company-group>summary::-webkit-details-marker{display:none}
+.company-group>summary:hover{background:rgba(255,255,255,.03)}
+.company-group>summary::after{content:"";width:6px;height:6px;border-right:1.6px solid var(--dim);border-bottom:1.6px solid var(--dim);transform:rotate(-45deg);transition:transform .2s var(--ease-out);margin-left:4px}
+.company-group[open]>summary::after{transform:rotate(45deg)}
+.company-group-name{flex:1;min-width:0;color:var(--bright);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-group-count{color:var(--dim);font-size:12px;min-width:18px;text-align:right;font-variant-numeric:tabular-nums}
+.company-group-body{padding:0 6px 8px}
+.company-group[open]>summary~*{animation:m-rise .24s var(--ease-out) both}
+.company-group-open{border:0;background:none;color:var(--amber);font-size:12.5px;font-weight:500;padding:8px 8px 2px;cursor:pointer}
+.load-more{display:flex;justify-content:center;padding:12px 0 4px}
+@media(max-width:520px){.red-toolbar .seg{flex:1 1 100%}.red-toolbar .seg button{flex:1}.contact-row-ago{display:none}}
+
+/* V0.91 — Two-pane Red on wide screens */
+.app.app-wide{max-width:1320px!important}
+.app.app-wide>.nav{width:min(1320px,100%)!important}
+.app.app-wide>.fab{right:max(18px,calc((100vw - 1320px)/2 + 18px))!important}
+.red-split{display:grid;grid-template-columns:minmax(360px,420px) minmax(0,1fr);gap:12px;align-items:start}
+.red-split>.section{margin:12px 0}
+.red-pane{position:sticky;top:12px;max-height:calc(100dvh - 110px);overflow:auto;padding:18px 20px;scrollbar-width:thin}
+.red-pane::-webkit-scrollbar{width:8px}
+.red-pane::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+.red-pane-inner{animation:m-fade .18s ease-out both}
+.red-list-col .red-toolbar{gap:6px}
+.red-list-col .red-filter{flex-basis:100%}
+.red-list-col .seg{flex:1 1 auto}
+.red-list-col .seg button{flex:1}
+.red-list-col .contact-row-ago{display:none}
+.red-list-col .contact-row{scroll-margin-top:70px;scroll-margin-bottom:100px}
+.contact-row.is-selected{background:rgba(10,132,255,.9)}
+.contact-row.is-selected .contact-row-name,.contact-row.is-selected .contact-row-sub{color:#fff}
+.contact-row.is-selected .row-quick{background:rgba(255,255,255,.22);color:#fff}
+.contact-row.is-selected+.contact-row,.contact-row+.contact-row.is-selected{border-top-color:transparent}
+
+/* V0.93 — Native dropdown lists: Windows/Chrome paints the option popup with a white
+   background unless options get explicit colors, which left light text unreadable. */
+select{background-color:#2a2a2d;color-scheme:dark}
+select option,select optgroup{background-color:#2c2c2e;color:#f5f5f7}
+select option:checked{background-color:#0a84ff;color:#fff}
+select option:disabled{color:#8e8e93}
+
+/* V0.92 — Preferences switch (macOS-style toggle) */
+.pref-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.switch{flex:0 0 auto;width:44px;height:26px;border-radius:999px;border:0;padding:0;background:rgba(120,120,128,.36);position:relative;cursor:pointer;transition:background .2s ease}
+.switch>span{position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .22s var(--ease-out)}
+.switch.on{background:var(--success)}
+.switch.on>span{transform:translateX(18px)}
+.switch:focus-visible{outline:none;box-shadow:var(--focus)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
 
 </head>
 <body><div id="root"></div>
@@ -960,6 +1102,48 @@ const NoteText=({text,empty="",small=false,lines=7})=>{
   {long&&<button type="button" className="note-more" onClick={e=>{e.stopPropagation();setOpen(v=>!v)}}>{open?"Ver menos":"Ver más"}</button>}
  </div>;
 };
+// V0.90 — Long lists render 50 rows at a time; this sentinel asks for the next page when it
+// scrolls into view (or on tap). The callback lives in a ref so re-renders don't re-subscribe.
+const LoadMore=({onMore,left})=>{
+ const ref=React.useRef(null), cb=React.useRef(onMore); cb.current=onMore;
+ React.useEffect(()=>{const el=ref.current;if(!el||!("IntersectionObserver" in window))return;
+  const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))cb.current()},{rootMargin:"500px"});io.observe(el);return ()=>io.disconnect()},[]);
+ return <div ref={ref} className="load-more"><button type="button" className="btn dim" onClick={()=>cb.current()}>CARGAR MÁS ({left})</button></div>;
+};
+// V0.92 — Subtle UI sounds, synthesized with Web Audio (no files to download). Short, quiet,
+// macOS-like: a soft tick on taps, a pop when a sheet opens/closes, a two-note chime on save.
+// The AudioContext is created on the first user gesture (required by iOS/Chrome) and the
+// on/off preference is per device.
+const UISound=(()=>{
+ let ctx=null, enabled=safeStorage.get(KEY+"_sound")!=="off", lastTap=0;
+ const audio=()=>{
+  if(!ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;ctx=new C()}
+  if(ctx.state==="suspended")ctx.resume();
+  return ctx;
+ };
+ const tone=({freq,to,dur,gain,type="sine",delay=0})=>{
+  const c=audio();if(!c)return;
+  const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+dur);
+  g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+0.005);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+0.03);
+ };
+ const SOUNDS={
+  tap:()=>tone({freq:2600,to:1700,dur:0.028,gain:0.03,type:"triangle"}),
+  open:()=>tone({freq:420,to:760,dur:0.11,gain:0.035}),
+  close:()=>tone({freq:700,to:420,dur:0.09,gain:0.025}),
+  success:()=>{tone({freq:880,dur:0.14,gain:0.032});tone({freq:1318.5,dur:0.2,gain:0.028,delay:0.075})}
+ };
+ return {
+  play(name){
+   if(!enabled||!SOUNDS[name])return;
+   if(name==="tap"){const now=performance.now();if(now-lastTap<45)return;lastTap=now}
+   try{SOUNDS[name]()}catch(e){}
+  },
+  get enabled(){return enabled},
+  setEnabled(v){enabled=!!v;safeStorage.set(KEY+"_sound",v?"on":"off")}
+ };
+})();
 const Ctx=React.createContext(null);
 const InitiativeForm=({i={}})=>{const {db,modal,setModal,saveInitiative}=React.useContext(Ctx);const partner=i.empresaId||modal.company||"";const [companyId,setCompanyId]=React.useState(partner);const contacts=db.contactos.filter(c=>c.empresaId===companyId);return <form onSubmit={saveInitiative}>
   <label>NOMBRE *</label><input name="nombre" required defaultValue={i.nombre||""} placeholder="Ej: Sales Play Nexsys · Territorio Q4"/>
@@ -1047,6 +1231,42 @@ function App(){
  const [pulseDetail,setPulseDetail]=useState(null);
  const [pulseWeekFilter,setPulseWeekFilter]=useState(null);
  const [initiativePortfolioFilter,setInitiativePortfolioFilter]=useState("Activa");
+ const [redView,setRedView]=useState("mis"), [redSort,setRedSort]=useState("az"), [redQuery,setRedQuery]=useState(""), [redLimit,setRedLimit]=useState(50);
+ const [contactTab,setContactTab]=useState("resumen");
+ const [redSelected,setRedSelected]=useState(null);
+ const [soundOn,setSoundOn]=useState(UISound.enabled);
+ // Tap sound for any pressable control (delegated, so new buttons get it for free).
+ useEffect(()=>{
+  const onDown=e=>{if(e.button>0)return;const el=e.target.closest&&e.target.closest('button,summary,[role="button"],.search-hit,.contact-row');if(!el||el.disabled)return;UISound.play("tap")};
+  document.addEventListener("pointerdown",onDown,true);return ()=>document.removeEventListener("pointerdown",onDown,true);
+ },[]);
+ // Pop when a sheet or dialog opens or closes.
+ const sheetOpen=!!modal||!!dialog, sheetWasOpen=React.useRef(sheetOpen);
+ useEffect(()=>{if(sheetOpen!==sheetWasOpen.current){UISound.play(sheetOpen?"open":"close");sheetWasOpen.current=sheetOpen}},[sheetOpen]);
+ useEffect(()=>{setContactTab("resumen")},[modal&&modal.viewContact,redSelected]);
+ // V0.91 — Two-pane Red on wide screens (list + contact sheet side by side, like Mail).
+ const WIDE_MQ="(min-width: 1100px)";
+ const [wide,setWide]=useState(()=>!!(window.matchMedia&&window.matchMedia(WIDE_MQ).matches));
+ useEffect(()=>{const mq=window.matchMedia&&window.matchMedia(WIDE_MQ);if(!mq)return;const f=e=>setWide(e.matches);
+  mq.addEventListener?mq.addEventListener("change",f):mq.addListener(f);
+  return ()=>{mq.removeEventListener?mq.removeEventListener("change",f):mq.removeListener(f)}},[]);
+ const paneMode=tab==="red"&&wide;
+ useEffect(()=>{if(!paneMode||!redSelected)return;const t=setTimeout(()=>document.querySelector(".red-list-col .contact-row.is-selected")?.scrollIntoView({block:"nearest"}),60);return ()=>clearTimeout(t)},[redSelected,paneMode]);
+ // ↑/↓ walk the visible list while the pane is shown (ignored while typing or with a sheet open).
+ useEffect(()=>{
+  if(!paneMode||modal)return;
+  const onKey=e=>{
+   if(e.key!=="ArrowDown"&&e.key!=="ArrowUp")return;
+   const tag=(document.activeElement&&document.activeElement.tagName)||"";
+   if(["INPUT","TEXTAREA","SELECT"].includes(tag))return;
+   const rows=[...document.querySelectorAll(".red-list-col .contact-row[data-id]")].filter(r=>r.offsetParent);
+   if(!rows.length)return;
+   const i=rows.findIndex(r=>r.classList.contains("is-selected"));
+   const next=rows[Math.max(0,Math.min(rows.length-1,(i<0?0:i+(e.key==="ArrowDown"?1:-1))))];
+   e.preventDefault();setRedSelected(next.dataset.id);next.scrollIntoView({block:"nearest"});
+  };
+  window.addEventListener("keydown",onKey);return ()=>window.removeEventListener("keydown",onKey);
+ },[paneMode,modal]);
  const globalSearchRef=React.useRef(null);
  useEffect(()=>{
   sb.auth.getSession().then(({data})=>{setSession(data.session||null);setAuthReady(true);});
@@ -1135,12 +1355,12 @@ function App(){
  const globalResults=gs.length<2?[]:[
   ...db.empresas.filter(e=>norm([e.nombre,e.industria,e.estado,e.potencial].join(" ")).includes(gs)).slice(0,6).map(e=>({kind:"EMPRESA",title:e.nombre,meta:[e.industria,e.estado,"Potencial "+e.potencial].filter(Boolean).join(" · "),open:()=>setModal({viewCompany:e.id})})),
   ...(db.radar||[]).filter(r=>norm([r.nombre,r.sector,r.sistema,r.confianza,r.estado,r.notas,...(r.evidencias||[]).map(e=>[e.titulo,e.fuente].join(" "))].join(" ")).includes(gs)).slice(0,6).map(r=>({kind:"RADAR",title:r.nombre,meta:[r.sistema||"Sistema sin inferir",r.confianza,r.estado].join(" · "),open:()=>setModal({viewRadar:r.id})})),
-  ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" · "),open:()=>setModal({viewContact:c.id})})),
+  ...db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,c.telefono,c.intereses?.join(" "),c.nota,emp(c.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(c=>({kind:"CONTACTO",title:c.nombre,meta:[emp(c.empresaId)?.nombre,c.cargo,c.rolDecision,c.posicion].filter(Boolean).join(" · "),open:()=>openContact(c.id)})),
   ...db.oportunidades.filter(o=>norm([o.nombre,o.etapa,o.proxima,o.nota,o.motivo_nurturing,o.fecha_reactivacion,emp(o.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(o=>({kind:"OPORTUNIDAD",title:o.nombre,meta:[emp(o.empresaId)?.nombre,o.etapa,o.etapa==="Nurturing"?o.motivo_nurturing:o.proxima,o.fecha_reactivacion].filter(Boolean).join(" · "),open:()=>setModal({viewOpp:o.id})})),
   ...(db.iniciativas||[]).filter(i=>norm([i.nombre,i.tipo,i.objetivo,i.estado,emp(i.empresaId)?.nombre,db.contactos.find(c=>c.id===i.contactoId)?.nombre,...(i.cuentas||[]).map(c=>emp(c.empresaId)?.nombre||"")].join(" ")).includes(gs)).slice(0,6).map(i=>({kind:"INICIATIVA",title:i.nombre,meta:[i.tipo,emp(i.empresaId)?.nombre,i.estado,i.proximoStatus?`STATUS ${i.proximoStatus}`:""].filter(Boolean).join(" · "),open:()=>setModal({viewInitiative:i.id})})),
   ...(db.triggers||[]).filter(t=>norm([t.titulo,t.tipo,t.descripcion,t.fuente,t.relevancia,emp(t.empresaId)?.nombre].join(" ")).includes(gs)).slice(0,6).map(t=>({kind:"TRIGGER",title:t.titulo,meta:[emp(t.empresaId)?.nombre,t.tipo,t.relevancia,t.estado].filter(Boolean).join(" · "),open:()=>t.oportunidadId?setModal({viewOpp:t.oportunidadId}):t.empresaId?setModal({viewCompany:t.empresaId}):setTab("hoy")})),
   ...(db.tareas||[]).filter(t=>norm([t.texto,t.fecha,t.prioridad,t.completada?"completada hecho":"pendiente abierta",emp(t.empresaId)?.nombre,db.contactos.find(c=>c.id===t.contactoId)?.nombre,db.oportunidades.find(o=>o.id===t.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,8).map(t=>({kind:"TAREA",title:t.texto||"TAREA",meta:[emp(t.empresaId)?.nombre,db.contactos.find(c=>c.id===t.contactoId)?.nombre,t.fecha,t.prioridad,t.completada?"COMPLETADA":"PENDIENTE"].filter(Boolean).join(" · "),open:()=>setModal({editTask:t.id})})),
-  ...(db.notas||[]).filter(n=>norm([n.texto,emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre,db.oportunidades.find(o=>o.id===n.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,5).map(n=>({kind:"NOTA",title:(n.texto||"").slice(0,80),meta:[emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre].filter(Boolean).join(" · "),open:()=>n.contactoId?setModal({viewContact:n.contactoId}):n.oportunidadId?setModal({viewOpp:n.oportunidadId}):n.empresaId?setModal({viewCompany:n.empresaId}):setTab("log")}))
+  ...(db.notas||[]).filter(n=>norm([n.texto,emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre,db.oportunidades.find(o=>o.id===n.oportunidadId)?.nombre].join(" ")).includes(gs)).slice(0,5).map(n=>({kind:"NOTA",title:(n.texto||"").slice(0,80),meta:[emp(n.empresaId)?.nombre,db.contactos.find(c=>c.id===n.contactoId)?.nombre].filter(Boolean).join(" · "),open:()=>n.contactoId?openContact(n.contactoId):n.oportunidadId?setModal({viewOpp:n.oportunidadId}):n.empresaId?setModal({viewCompany:n.empresaId}):setTab("log")}))
  ];
  function openGlobalResult(r){setGlobalSearch("");r.open();}
  const hasFollowupTask=o=>(db.tareas||[]).some(t=>!t.completada&&t.oportunidadId===o.id&&t.fecha===o.fecha&&norm(t.texto)===norm(o.proxima));
@@ -1195,6 +1415,9 @@ function App(){
   failedRef.current=true;
   setDialog({type:"info",title,message});
  }
+ // Opening a person: on the wide Red layout it selects the contact in the side pane,
+ // everywhere else it opens the contact sheet.
+ function openContact(id){if(tab==="red"&&wide){setRedSelected(id);setModal(false)}else setModal({viewContact:id})}
  // V0.86 — Form submits go through guard(): repeat taps are ignored while Supabase answers
  // (no duplicate records on slow mobile data) and a clean save shows a short "Guardado".
  const savingRef=React.useRef(false), failedRef=React.useRef(false);
@@ -1204,7 +1427,7 @@ function App(){
   ev.preventDefault();
   if(savingRef.current)return;
   savingRef.current=true;failedRef.current=false;setSaving(true);
-  try{await fn(ev);if(!failedRef.current)setToast({msg:"Guardado",id:Date.now()})}
+  try{await fn(ev);if(!failedRef.current){setToast({msg:"Guardado",id:Date.now()});UISound.play("success")}}
   catch(e){showInfo("ERROR",e.message)}
   finally{savingRef.current=false;setSaving(false)}
  };
@@ -1341,6 +1564,7 @@ function App(){
  }
  async function toggleTask(id){
   const t=(db.tareas||[]).find(x=>x.id===id);if(!t)return;
+  if(!t.completada)UISound.play("success");
   if(cloudReady){const {data,error}=await sb.from("tareas").update({completada:!t.completada}).eq("id",id).select().single();if(!(await cloudError(error)))applyCloudRows([["tareas",data]])}
   else setDb(d=>({...d,tareas:(d.tareas||[]).map(t=>t.id===id?{...t,completada:!t.completada}:t)}));
  }
@@ -1477,7 +1701,7 @@ function App(){
   const late=t.fecha&&t.fecha<today;
   return <div className="card ent-card"><div className="ent-row"><Glyph kind="tarea"/><div className="ent-body">
    <div className="row"><div className="title">{t.texto}</div><span className={"prio prio-"+norm(t.prioridad)}>{t.prioridad}</span></div>
-   {(e||c||o)&&<div className="ent-refs">{e&&<Chip kind="empresa" name={e.nombre} onClick={()=>setModal({viewCompany:e.id})}/>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>setModal({viewContact:c.id})}/>}{o&&<Chip kind="oportunidad" name={o.nombre} onClick={()=>setModal({viewOpp:o.id})}/>}</div>}
+   {(e||c||o)&&<div className="ent-refs">{e&&<Chip kind="empresa" name={e.nombre} onClick={()=>setModal({viewCompany:e.id})}/>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>openContact(c.id)}/>}{o&&<Chip kind="oportunidad" name={o.nombre} onClick={()=>setModal({viewOpp:o.id})}/>}</div>}
    <div className="meta"><span className={late?"overdue":""}>{t.fecha?fmtDate(t.fecha):"Sin fecha"}</span>{t.completada?" · Hecha":late?" · Vencida":""}</div>
    </div></div>
    <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"HECHO"}</button>{!t.completada&&<button className="btn dim" onClick={()=>openTaskCalendar(t)}>CALENDAR</button>}<button className="btn dim" onClick={()=>setModal({editTask:t.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
@@ -1506,7 +1730,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM · ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.88</span></div>
+  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.93</span></div>
   <div className="meta">SUPABASE AUTH · CLOUD · DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -1534,7 +1758,7 @@ function App(){
   return <details className="card ent-card is-done task-done" key={t.id}>
    <summary className="ent-row"><Glyph kind="tarea" size={26}/><div className="ent-body"><div className="title">{t.texto}</div><div className="meta">{[e?.nombre,c?.nombre,t.fecha&&fmtDate(t.fecha)].filter(Boolean).join(" · ")||"Hecha"}</div></div><span className="task-done-chev" aria-hidden="true"/></summary>
    <div className="task-done-detail">
-    {(e||c||o)&&<div className="ent-refs">{e&&<Chip kind="empresa" name={e.nombre} onClick={()=>setModal({viewCompany:e.id})}/>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>setModal({viewContact:c.id})}/>}{o&&<Chip kind="oportunidad" name={o.nombre} onClick={()=>setModal({viewOpp:o.id})}/>}</div>}
+    {(e||c||o)&&<div className="ent-refs">{e&&<Chip kind="empresa" name={e.nombre} onClick={()=>setModal({viewCompany:e.id})}/>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>openContact(c.id)}/>}{o&&<Chip kind="oportunidad" name={o.nombre} onClick={()=>setModal({viewOpp:o.id})}/>}</div>}
     <div className="meta">Completada · {t.fecha?fmtDate(t.fecha):"sin fecha"} · Prioridad {t.prioridad}</div>
     <div className="actions"><button className="btn dim" onClick={()=>toggleTask(t.id)}>REABRIR</button><button className="btn dim" onClick={()=>setModal({editTask:t.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div>
    </div>
@@ -1548,11 +1772,89 @@ function App(){
    </div></div>
    <div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR</button><button className="btn" onClick={()=>setModal({opp:o.id})}>REGISTRAR</button></div>
  </div>};
- return <Ctx.Provider value={{db,modal,setModal,emp,saveInitiative:guard(saveInitiative),saveTender:guard(saveTender),deleteTender}}><div className={"app crt"+(saving?" saving":"")}>
+ // Contact sheet, shared by the modal and the Red side pane (plain render function).
+ const contactSheet=(id,inPane=false)=>{
+      const c=db.contactos.find(x=>x.id===id); if(!c)return <><div className="empty">CONTACTO NO ENCONTRADO (PUEDE HABER SIDO ELIMINADO).</div><div className="actions"><button className="btn dim" onClick={()=>setModal(false)}>CERRAR</button></div></>; const acts=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+      const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+      const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
+      const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+      const contactOpps=(db.oportunidades||[]).filter(o=>(o.contactos||[]).includes(c.id)).sort((a,b)=>{
+       const closed=x=>["Ganada","Perdida"].includes(x.etapa)?1:0;
+       return closed(a)-closed(b)||((a.fecha||"9999").localeCompare(b.fecha||"9999"))||a.nombre.localeCompare(b.nombre,"es");
+      });
+      // V0.90 — Sheet split into tabs so it stays short: identity, channels and actions on top,
+      // then Resumen · Actividad · Tareas · Notas. Empty sections are hidden.
+      const initiatives=(db.iniciativas||[]).filter(i=>i.contactoId===c.id);
+      const hasOrg=!!db.contactos.find(x=>x.id===c.reportaA)||db.contactos.some(x=>x.reportaA===c.id);
+      const openTasks=tasks.filter(t=>!t.completada).length;
+      const tabs=[["resumen","Resumen",0],["actividad","Actividad",acts.length],["tareas","Tareas",openTasks],["notas","Notas",notes.length]];
+      return <>{!inPane&&<div className="section-title"><span>FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>}
+        <div className="ent-hero"><Avatar name={c.nombre} size={56}/><div className="ent-body"><div className="title ent-hero-title">{c.nombre}</div><div className="ent-sub">{c.cargo||"Sin cargo"}</div><div className="ent-refs">{emp(c.empresaId)?<Chip kind="empresa" name={emp(c.empresaId).nombre} onClick={()=>setModal({viewCompany:c.empresaId})}/>:<span className="meta">Sin empresa</span>}</div></div></div>
+       <div className="contact-links">
+        <div className="contact-link-row"><span className="contact-link-label">EMAIL</span><span className="contact-link-value">{c.email||"—"}</span>{c.email?<button className="contact-link-action" onClick={()=>location.href="mailto:"+c.email}>[ENVIAR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+        <div className="contact-link-row"><span className="contact-link-label">TELÉFONO</span><span className="contact-link-value">{c.telefono||"—"}</span>{c.telefono?<button className="contact-link-action" onClick={()=>window.open("https://wa.me/"+c.telefono.replace(/\D/g,""),"_blank","noopener,noreferrer")}>[WHATSAPP →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+        <div className="contact-link-row"><span className="contact-link-label">LINKEDIN</span><span className="contact-link-value">{c.linkedin||"—"}</span>{c.linkedin?<button className="contact-link-action" onClick={()=>{let u=c.linkedin.trim();if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener,noreferrer")}}>[ABRIR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
+       </div>
+       <div className="actions">
+        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
+       </div>
+       <div className="seg seg-tabs" role="tablist">{tabs.map(([k,l,n])=><button type="button" role="tab" aria-selected={contactTab===k} key={k} className={contactTab===k?"on":""} onClick={()=>setContactTab(k)}>{l}{n?<span className="seg-count">{n}</span>:null}</button>)}</div>
+       <div className="tab-panel" key={contactTab}>
+       {contactTab==="resumen"&&<>
+        <div className="meta">Relación {c.estado} · Potencial {c.potencial} · Rol {c.rolDecision||"Sin definir"} · Posición {c.posicion||"Desconocida"}{c.origen?` · Origen: ${c.origen}`:""}</div>
+        <div className="meta">Último contacto {c.ultimo?fmtDate(c.ultimo):"—"} · Próximo {c.proximo?fmtDate(c.proximo):"sin agendar"}</div>
+        {(c.intereses||[]).length>0&&<div style={{marginTop:"6px"}}>{c.intereses.map(x=><span className="tag" key={x}>{x}</span>)}</div>}
+        {cleanText(c.nota)&&<><div className="small" style={{marginTop:"12px"}}>NOTA</div><NoteText text={c.nota}/></>}
+        {contactOpps.length>0&&<><hr/><div className="section-title"><span>OPORTUNIDADES</span><span>{contactOpps.length}</span></div>{contactOpps.map(o=><Opportunity key={o.id} o={o}/>)}</>}
+        {initiatives.length>0&&<><hr/><div className="section-title"><span>INICIATIVAS COMERCIALES</span><span>{initiatives.length}</span></div>{initiatives.map(i=><div className="card ent-card" key={i.id}><div className="ent-row"><Glyph kind="iniciativa"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{i.nombre}</div><div className="ent-sub">{i.tipo} · {i.cuentas.length} cuentas</div></div><span className="tag">{i.estado}</span></div></div></div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER →</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>)}</>}
+        {contactTriggers.length>0&&<><hr/><div className="section-title"><span>TRIGGERS / SEÑALES</span><span>{contactTriggers.length}</span></div>
+       {contactTriggers.length?contactTriggers.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} · {t.tipo} · {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` · ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><NoteText text={t.descripcion} empty="—" small/><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:c.id,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button></div></div>):null}
+        </>}
+        {hasOrg&&<><hr/>
+       {(()=>{const jefe=db.contactos.find(x=>x.id===c.reportaA);return <div style={{marginTop:"10px"}}><div className="small">REPORTA A</div>{jefe?<div className="card" style={{margin:"7px 0",padding:"9px 11px"}}><div className="row"><div><div className="title">{jefe.nombre}</div><div className="meta">{jefe.cargo||"SIN CARGO"} · {jefe.rolDecision||"Sin definir"} · {jefe.posicion||"Desconocida"}</div></div><button className="btn dim" onClick={()=>openContact(jefe.id)}>VER FICHA →</button></div></div>:<div className="meta">SIN JEFE DEFINIDO</div>}</div>})()}
+       {(()=>{
+         const reports=db.contactos.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+         return <div style={{marginTop:"10px"}}>
+           <div className="small">REPORTES DIRECTOS · {reports.length}</div>
+           {reports.length?reports.map(r=><div key={r.id} className="card" style={{margin:"7px 0",padding:"9px 11px",cursor:"pointer"}} onClick={()=>openContact(r.id)}><div className="row"><div><div className="title">{r.nombre}</div><div className="meta">{r.cargo||"SIN CARGO"} · {r.rolDecision||"Sin definir"} · {r.posicion||"Desconocida"}</div></div><span className="tag">FICHA</span></div></div>):<div className="meta">NINGUNO REGISTRADO</div>}
+         </div>;
+       })()}
+       {(()=>{
+         const companyContacts=db.contactos.filter(x=>x.empresaId===c.empresaId);
+         const byId=new Map(companyContacts.map(x=>[x.id,x]));
+         const visible=new Map();
+         let cur=c,guard=0;
+         while(cur&&guard++<30){visible.set(cur.id,cur);cur=cur.reportaA?byId.get(cur.reportaA):null;}
+         const addDesc=(parent,depth=0)=>{if(!parent||depth>20)return;companyContacts.filter(x=>x.reportaA===parent.id).forEach(k=>{visible.set(k.id,k);addDesc(k,depth+1)})};
+         addDesc(c);
+         const vs=[...visible.values()], ids=new Set(vs.map(x=>x.id));
+         const roots=vs.filter(x=>!x.reportaA||!ids.has(x.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+         const renderNode=(x,path=new Set())=>{if(!x||path.has(x.id))return null;const next=new Set(path);next.add(x.id);const kids=vs.filter(k=>k.reportaA===x.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));const selected=x.id===c.id;return <li key={x.id}><div className="org-node" style={selected?{borderWidth:"2px",boxShadow:"0 0 14px rgba(10,132,255,.45)"}:null} onClick={()=>openContact(x.id)}><div className="org-name">{selected?"> ":""}{x.nombre}</div><div className="org-role">{x.cargo||"SIN CARGO"}</div><div className="org-meta">{x.rolDecision||"Sin definir"} · {x.posicion||"Desconocida"}</div>{selected&&<div className="org-meta">[ CONTACTO ACTUAL ]</div>}</div>{kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}</li>};
+         return <><hr/><div className="section-title"><span>MAPA DE RELACIONES</span><span>{vs.length} PERSONAS</span></div><div className="org-legend">CONTEXTO JERÁRQUICO · SUPERIORES + REPORTES DEL CONTACTO</div><OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport></>;
+       })()}
+        </>}
+       </>}
+       {contactTab==="actividad"&&<>
+       {acts.length?(()=>{
+         const icon=t=>({"Llamada":"📞","Reunión":"🤝","Email":"✉️","WhatsApp":"💬","LinkedIn":"🔗","Nota":"📝"}[t]||"●");
+         const fmt=d=>{if(!d)return "—";const [y,m,day]=d.slice(0,10).split("-");return `${day}/${m}`};
+         const latest=acts[acts.length-1];
+         return <><div className="touch-summary">{acts.length} TOQUES · ÚLTIMO {latest?.fecha||"—"} · {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:acts.length<=5?"100%":`${Math.max(640,acts.length*112)}px`}}><div className="touch-axis"/>{acts.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${acts.length===1?50:6+(idx/(acts.length-1))*88}%`}} title={`${a.fecha||""} · ${a.tipo||""}${a.nota?` · ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>
+       })():<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
+        {acts.slice().reverse().map(a=><div className="card" key={a.id}><div className="row"><b>{a.tipo}</b><span className="small">{fmtDate(a.fecha)}</span></div><NoteText text={a.nota} empty="Sin nota"/><div className="actions"><button className="btn dim" onClick={()=>setModal({editActivity:a.id})}>EDITAR</button></div></div>)}
+       </>}
+       {contactTab==="tareas"&&taskList(tasks)}
+       {contactTab==="notas"&&<>
+       {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><NoteText text={n.texto}/><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
+       </>}
+       </div>
+      </>
+ };
+ return <Ctx.Provider value={{db,modal,setModal,emp,saveInitiative:guard(saveInitiative),saveTender:guard(saveTender),deleteTender}}><div className={"app crt"+(saving?" saving":"")+(paneMode?" app-wide":"")}>
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.88</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.93</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>SUPABASE <span style={{color:cloudStatus==="CONECTADO"?"var(--success)":"var(--dim)"}}>{cloudStatus==="CONECTADO"?"●":"○"}</span></div>
@@ -1580,43 +1882,43 @@ function App(){
    <div className="section"><div className="section-title"><span>REACTIVAR OPORTUNIDADES</span><span>{reactivar.length}</span></div><div className="small">DESDE 30 DÍAS ANTES DE LA FECHA DE REACTIVACIÓN.</div>{reactivar.map(o=><Opportunity key={o.id} o={o}/>)}{!reactivar.length&&<div className="empty">SIN OPORTUNIDADES EN VENTANA.</div>}</div>
    <div className={`section hoy-section ${hoyOpen==="overdue"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="overdue"?null:"overdue")}><span><span className="section-chevron">{hoyOpen==="overdue"?"▼":"▶"}</span>VENCIDAS</span><span className="hoy-section-count">{tareasVencidas.length}</span></div>
-    {hoyOpen==="overdue"&&<>{tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{!tareasVencidas.length&&<div className="empty">SIN TAREAS VENCIDAS.</div>}</>}
+    {hoyOpen==="overdue"&&<div className="hoy-body">{tareasVencidas.map(t=><TaskCard key={t.id} t={t}/>)}{!tareasVencidas.length&&<div className="empty">SIN TAREAS VENCIDAS.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="today"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="today"?null:"today")}><span><span className="section-chevron">{hoyOpen==="today"?"▼":"▶"}</span>HOY · {today}</span><span className="hoy-section-count">{hoy.length+tareasHoy.length}</span></div>
-    {hoyOpen==="today"&&<>{tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}</>}
+    {hoyOpen==="today"&&<div className="hoy-body">{tareasHoy.map(t=><TaskCard key={t.id} t={t}/>)}{hoy.map(o=><Opportunity key={o.id} o={o}/>)}{!tareasHoy.length&&!hoy.length&&<div className="empty">SIN ACCIONES PARA HOY.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="next7"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="next7"?null:"next7")}><span><span className="section-chevron">{hoyOpen==="next7"?"▼":"▶"}</span>PRÓXIMOS 7 DÍAS</span><span className="hoy-section-count">{proximas.length+tareas7.length}</span></div>
-    {hoyOpen==="next7"&&<>{tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}</>}
+    {hoyOpen==="next7"&&<div className="hoy-body">{tareas7.map(t=><TaskCard key={t.id} t={t}/>)}{proximas.map(o=><Opportunity key={o.id} o={o}/>)}{!tareas7.length&&!proximas.length&&<div className="empty">SIN ACCIONES PROGRAMADAS.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="status"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="status"?null:"status")}><span><span className="section-chevron">{hoyOpen==="status"?"▼":"▶"}</span>STATUS COMERCIALES</span><span className="hoy-section-count">{initiativeStatuses.length}</span></div>
-    {hoyOpen==="status"&&<>{initiativeStatuses.length?initiativeStatuses.map(i=><div className="card ent-card" key={i.id}><div className="ent-row"><Glyph kind="iniciativa"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{i.nombre}</div><div className="ent-sub">{i.cuentas.length} cuentas</div></div><span className="tag">{fmtDate(i.proximoStatus)}</span></div>{emp(i.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(i.empresaId).nombre} onClick={()=>setModal({viewCompany:i.empresaId})}/></div>}<div className="meta">{i.objetivo||"Sin objetivo"}</div></div></div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN INICIATIVAS ACTIVAS CON PRÓXIMO STATUS.</div>}</>}
+    {hoyOpen==="status"&&<div className="hoy-body">{initiativeStatuses.length?initiativeStatuses.map(i=><div className="card ent-card" key={i.id}><div className="ent-row"><Glyph kind="iniciativa"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{i.nombre}</div><div className="ent-sub">{i.cuentas.length} cuentas</div></div><span className="tag">{fmtDate(i.proximoStatus)}</span></div>{emp(i.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(i.empresaId).nombre} onClick={()=>setModal({viewCompany:i.empresaId})}/></div>}<div className="meta">{i.objetivo||"Sin objetivo"}</div></div></div><div className="actions"><button className="btn primary" onClick={()=>setModal({statusInitiative:i.id})}>ABRIR STATUS →</button><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER INICIATIVA</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>):<div className="empty">SIN INICIATIVAS ACTIVAS CON PRÓXIMO STATUS.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="renewals"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="renewals"?null:"renewals")}><span><span className="section-chevron">{hoyOpen==="renewals"?"▼":"▶"}</span>RENOVACIONES / CONTRATOS</span><span className="hoy-section-count">{tenderRenewals.length}</span></div>
-    {hoyOpen==="renewals"&&<>{tenderRenewals.length?tenderRenewals.map(t=><div className="card ent-card" key={t.id}><div className="ent-row"><Glyph kind="licitacion"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{t.nombre}</div></div><span className="tag">Renovación</span></div>{emp(t.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(t.empresaId).nombre} onClick={()=>setModal({viewCompany:t.empresaId})}/></div>}<div className="meta">Ventana {fmtDate(t.renewalDate)} · vence {fmtDate(t.fin)}<br/>Incumbente: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"sin registrar"}</div></div></div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewTender:t.id})}>VER CONTRATO →</button></div></div>):<div className="empty">SIN RENOVACIONES EN VENTANA.</div>}</>}
+    {hoyOpen==="renewals"&&<div className="hoy-body">{tenderRenewals.length?tenderRenewals.map(t=><div className="card ent-card" key={t.id}><div className="ent-row"><Glyph kind="licitacion"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{t.nombre}</div></div><span className="tag">Renovación</span></div>{emp(t.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(t.empresaId).nombre} onClick={()=>setModal({viewCompany:t.empresaId})}/></div>}<div className="meta">Ventana {fmtDate(t.renewalDate)} · vence {fmtDate(t.fin)}<br/>Incumbente: {t.adjudicatarios.filter(a=>!a.nosotros).map(a=>a.empresa).join(", ")||"sin registrar"}</div></div></div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewTender:t.id})}>VER CONTRATO →</button></div></div>):<div className="empty">SIN RENOVACIONES EN VENTANA.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="triggers"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="triggers"?null:"triggers")}><span><span className="section-chevron">{hoyOpen==="triggers"?"▼":"▶"}</span>TRIGGERS / SEÑALES</span><span className="hoy-section-count">{(db.triggers||[]).filter(t=>t.estado==="Nuevo").length}</span></div>
-    {hoyOpen==="triggers"&&<><div className="actions" style={{marginBottom:"10px"}}><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
+    {hoyOpen==="triggers"&&<div className="hoy-body"><div className="actions" style={{marginBottom:"10px"}}><button className="btn primary" onClick={()=>setModal({newTrigger:true})}>+ TRIGGER</button></div>
     {(db.triggers||[]).filter(t=>t.estado==="Nuevo").length?(db.triggers||[]).filter(t=>t.estado==="Nuevo").sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}>
       <div className="ent-row"><Glyph kind="trigger"/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{t.titulo}</div><div className="ent-sub">{t.tipo}</div></div><span className="tag">{t.relevancia}</span></div>
-      {(emp(t.empresaId)||db.contactos.find(c=>c.id===t.contactoId))&&<div className="ent-refs">{emp(t.empresaId)&&<Chip kind="empresa" name={emp(t.empresaId).nombre} onClick={()=>setModal({viewCompany:t.empresaId})}/>}{db.contactos.find(c=>c.id===t.contactoId)&&<Chip kind="persona" name={db.contactos.find(c=>c.id===t.contactoId).nombre} onClick={()=>setModal({viewContact:t.contactoId})}/>}</div>}
+      {(emp(t.empresaId)||db.contactos.find(c=>c.id===t.contactoId))&&<div className="ent-refs">{emp(t.empresaId)&&<Chip kind="empresa" name={emp(t.empresaId).nombre} onClick={()=>setModal({viewCompany:t.empresaId})}/>}{db.contactos.find(c=>c.id===t.contactoId)&&<Chip kind="persona" name={db.contactos.find(c=>c.id===t.contactoId).nombre} onClick={()=>openContact(t.contactoId)}/>}</div>}
       <div className="meta">{fmtDate(t.fecha)} · {t.descripcion||"Sin descripción"}{t.fuente&&` · ${t.fuente}`}</div></div></div>
-      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.contactoId&&<button className="btn dim" onClick={()=>setModal({viewContact:t.contactoId})}>VER CONTACTO →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:t.contactoId||"",opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
-    </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}</>}
+      <div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.contactoId&&<button className="btn dim" onClick={()=>openContact(t.contactoId)}>VER CONTACTO →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button><button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button><button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:t.contactoId||"",opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button><button className="btn dim" onClick={()=>updateTriggerState(t.id,"Descartado")}>DESCARTAR</button></div>
+    </div>):<div className="empty">SIN TRIGGERS NUEVOS.</div>}</div>}
    </div>
    <div className={`section hoy-section ${hoyOpen==="reconnect"?"open":""}`}>
     <div className="section-title" onClick={()=>setHoyOpen(hoyOpen==="reconnect"?null:"reconnect")}><span><span className="section-chevron">{hoyOpen==="reconnect"?"▼":"▶"}</span>RECONTACTAR</span><span className="hoy-section-count">{reconectar.length}</span></div>
-    {hoyOpen==="reconnect"&&<><div className="actions" style={{marginBottom:"10px"}}><button className="btn dim" onClick={()=>setTab("red")}>VER RED</button></div>
+    {hoyOpen==="reconnect"&&<div className="hoy-body"><div className="actions" style={{marginBottom:"10px"}}><button className="btn dim" onClick={()=>setTab("red")}>VER RED</button></div>
     {reconectar.length?reconectar.slice(0,6).map(c=><div className="card" key={c.id}>
       <div className="ent-row"><Avatar name={c.nombre} size={40}/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{c.nombre}</div><div className="ent-sub">{c.cargo||"Sin cargo"}</div></div><span className="tag">{c.potencial}</span></div>
       {emp(c.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(c.empresaId).nombre} onClick={()=>setModal({viewCompany:c.empresaId})}/></div>}
       <div className="meta">Sin contacto hace {daysSince(c.ultimo)} días · {c.intereses.join(", ")||"sin tema"}{c.proximo&&` · programado ${fmtDate(c.proximo)}`}</div></div></div>
-      <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>CONTACTAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div>
-     </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}</>}
+      <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>CONTACTAR</button><button className="btn dim" onClick={()=>openContact(c.id)}>FICHA</button></div>
+     </div>):<div className="empty">SIN RELACIONES PRIORITARIAS PARA REACTIVAR.</div>}</div>}
    </div>
     </>}
   {tab==="pulse"&&<div className="section">
@@ -1687,22 +1989,78 @@ function App(){
      {pulseDetail.startsWith("initiative:")&&<div className="actions" style={{marginBottom:"8px"}}><button className="btn primary" onClick={()=>setModal({viewInitiative:pulseDetail.split(":")[1]})}>ABRIR INICIATIVA →</button></div>}
      {!weekFilteredItems?.length?<div className="empty">SIN REGISTROS.</div>:
       pulseDetail.startsWith("week:")&&pulseWeekFilter==="__accounts"?weekFilteredItems.map(e=><div className="card" key={e.id}><div className="title">{e.nombre}</div><div className="meta">{e.industria||"SIN INDUSTRIA"} · {e.estado||"SIN ESTADO"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewCompany:e.id})}>VER EMPRESA →</button></div></div>):
-      (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?weekFilteredItems.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} · {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} · PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
+      (pulseDetail==="coverage"||pulseDetail==="next"||pulseDetail==="withoutNext")?weekFilteredItems.map(c=><div className="card" key={c.id}><div className="title">{c.nombre}</div><div>{emp(c.empresaId)?.nombre||"SIN EMPRESA"} · {c.cargo||"SIN CARGO"}</div><div className="meta">ÚLTIMO: {c.ultimo||"—"} · PRÓXIMO: {c.proximo||"—"}</div><div className="actions"><button className="btn dim" onClick={()=>openContact(c.id)}>VER CONTACTO →</button><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button></div></div>):
       (pulseDetail==="overdue"||pulseDetail==="upcoming")?weekFilteredItems.map(t=><TaskCard key={t.id} t={t}/>):
       pulseDetail==="pipeline"?weekFilteredItems.map(o=><Opportunity key={o.id} o={o}/>):
-      weekFilteredItems.map(a=>{const c=db.contactos.find(x=>x.id===a.contactoId),companyId=a.empresaId||c?.empresaId,e=companyId?emp(companyId):null;return <div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{c?.nombre||"SIN CONTACTO"}</div><div className="meta"><b>{e?.nombre||"SIN EMPRESA"}</b>{c?.cargo?` · ${c.cargo}`:""}</div><NoteText text={a.nota} empty="Sin nota"/><div className="actions">{c&&<button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>VER CONTACTO →</button>}{companyId&&<button className="btn dim" onClick={()=>setModal({viewCompany:companyId})}>VER EMPRESA →</button>}</div></div>})}
+      weekFilteredItems.map(a=>{const c=db.contactos.find(x=>x.id===a.contactoId),companyId=a.empresaId||c?.empresaId,e=companyId?emp(companyId):null;return <div className="card" key={a.id}><div className="row"><span className="title">{a.tipo}</span><span className="small">{a.fecha}</span></div><div>{c?.nombre||"SIN CONTACTO"}</div><div className="meta"><b>{e?.nombre||"SIN EMPRESA"}</b>{c?.cargo?` · ${c.cargo}`:""}</div><NoteText text={a.nota} empty="Sin nota"/><div className="actions">{c&&<button className="btn dim" onClick={()=>openContact(c.id)}>VER CONTACTO →</button>}{companyId&&<button className="btn dim" onClick={()=>setModal({viewCompany:companyId})}>VER EMPRESA →</button>}</div></div>})}
     </div>
    })()}
   </div>}
-  {tab==="red"&&<div className="section"><div className="section-title"><span>RELACIONES</span><button className="btn primary" onClick={()=>setModal({newContact:true})}>+ NUEVO CONTACTO</button></div>
-   <div className="small" style={{marginBottom:"8px"}}>{db.contactos.length} contactos · usa el buscador ( / ) para encontrar a alguien</div>
-   {db.contactos.map(c=><div className="card ent-card" key={c.id}><div className="ent-row"><Avatar name={c.nombre} size={40}/><div className="ent-body"><div className="row"><div style={{minWidth:0}}><div className="title">{c.nombre}</div><div className="ent-sub">{c.cargo||"Sin cargo"}</div></div><span className="tag">{c.estado}</span></div>
-    {emp(c.empresaId)&&<div className="ent-refs"><Chip kind="empresa" name={emp(c.empresaId).nombre} onClick={()=>setModal({viewCompany:c.empresaId})}/></div>}
-    <div className="meta">Último contacto {c.ultimo?`${fmtDate(c.ultimo)} (${daysSince(c.ultimo)} días)`:"—"} · Potencial {c.potencial}</div>
-    {(c.intereses||[]).length>0&&<div>{c.intereses.map(x=><span className="tag" key={x}>{x}</span>)}</div>}</div></div>
-    <div className="actions"><button className="btn" onClick={()=>setModal({contact:c.id})}>REGISTRAR</button><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button></div>
-   </div>)}
-    </div>}
+  {tab==="red"&&(()=>{
+   // V0.90 — Red scales to hundreds of contacts: a focused default view, instant filter,
+   // A–Z with letter index / by company (folded) / most recent, and 50 rows at a time.
+   const rq=norm(redQuery.trim());
+   const isMine=c=>(c.ultimo&&daysSince(c.ultimo)<=90)||(c.proximo&&c.proximo>=today)||c.potencial==="Alto";
+   const mineCount=db.contactos.filter(isMine).length;
+   const view=redView==="mis"&&mineCount===0?"todos":redView;
+   const list=rq?db.contactos.filter(c=>norm([c.nombre,c.cargo,c.email,emp(c.empresaId)?.nombre,(c.intereses||[]).join(" ")].join(" ")).includes(rq)):view==="mis"?db.contactos.filter(isMine):db.contactos;
+   const status=c=>(c.proximo&&c.proximo>=today)||(c.ultimo&&daysSince(c.ultimo)<=30)?"ok":(c.ultimo&&daysSince(c.ultimo)>=45)?"late":"idle";
+   const statusLabel={ok:"Al día",late:"Recontactar",idle:"Sin seguimiento reciente"};
+   const ago=c=>!c.ultimo?"Sin contacto":daysSince(c.ultimo)<=0?"Hoy":`hace ${daysSince(c.ultimo)} d`;
+   const more=()=>setRedLimit(n=>n+50);
+   const selId=paneMode?((redSelected&&db.contactos.some(c=>c.id===redSelected))?redSelected:list.slice().sort((x,y)=>x.nombre.localeCompare(y.nombre,"es"))[0]?.id||null):null;
+   const row=c=>{const e=emp(c.empresaId),st=status(c);return <div className={"contact-row"+(c.id===selId?" is-selected":"")} data-id={c.id} key={c.id} role="button" tabIndex={0} onClick={()=>openContact(c.id)} onKeyDown={ev=>{if(ev.key==="Enter")openContact(c.id)}}>
+     <Avatar name={c.nombre} size={36}/>
+     <div className="contact-row-main"><div className="contact-row-name">{c.nombre}</div><div className="contact-row-sub">{[c.cargo,e?.nombre].filter(Boolean).join(" · ")||"Sin cargo"}</div></div>
+     <div className="contact-row-side" title={statusLabel[st]}><span className="contact-row-ago">{ago(c)}</span><span className={"status-dot status-"+st}/></div>
+     <button type="button" className="row-quick" aria-label={`Registrar actividad con ${c.nombre}`} title="Registrar actividad" onClick={ev=>{ev.stopPropagation();setModal({contact:c.id})}}>+</button>
+    </div>};
+   let body;
+   if(redSort==="empresa"){
+    const groups=new Map();
+    list.forEach(c=>{const k=c.empresaId&&emp(c.empresaId)?c.empresaId:"";if(!groups.has(k))groups.set(k,[]);groups.get(k).push(c)});
+    const gs=[...groups.entries()].map(([k,cs])=>({k,e:emp(k),cs:cs.slice().sort((x,y)=>x.nombre.localeCompare(y.nombre,"es"))}))
+     .sort((x,y)=>(x.e?0:1)-(y.e?0:1)||(x.e?.nombre||"").localeCompare(y.e?.nombre||"","es"));
+    body=<>{gs.slice(0,redLimit).map(g=><details className="company-group" key={(g.k||"none")+(rq?"-q":"")} open={!!rq}>
+      <summary>{g.e?<Avatar name={g.e.nombre} kind="empresa" size={30}/>:<span className="avatar avatar-empresa" style={{"--av":"#8e8e93",width:30,height:30,fontSize:12}}>?</span>}
+       <span className="company-group-name">{g.e?.nombre||"Sin empresa"}</span>
+       <span className="avatar-stack-faces">{g.cs.slice(0,3).map(c=><Avatar key={c.id} name={c.nombre} size={22}/>)}</span>
+       <span className="company-group-count">{g.cs.length}</span></summary>
+      <div className="company-group-body">{g.cs.map(row)}{g.e&&<button type="button" className="company-group-open" onClick={()=>setModal({viewCompany:g.k})}>Ver empresa →</button>}</div>
+     </details>)}
+     {gs.length>redLimit&&<LoadMore onMore={more} left={gs.length-redLimit}/>}</>;
+   }else if(redSort==="reciente"){
+    const xs=list.slice().sort((x,y)=>(y.ultimo||"").localeCompare(x.ultimo||"")||x.nombre.localeCompare(y.nombre,"es"));
+    const lim=Math.max(redLimit,(selId?xs.findIndex(c=>c.id===selId):-1)+1);
+    body=<div className="contact-list">{xs.slice(0,lim).map(row)}{xs.length>lim&&<LoadMore onMore={more} left={xs.length-lim}/>}</div>;
+   }else{
+    const xs=list.slice().sort((x,y)=>x.nombre.localeCompare(y.nombre,"es"));
+    const letterOf=c=>{const ch=(norm(c.nombre).trim()[0]||"#");return /[a-z]/.test(ch)?ch.toUpperCase():"#"};
+    const letters=[...new Set(xs.map(letterOf))];
+    // Always render far enough to include the selected contact (e.g. picked from global search).
+    const lim=Math.max(redLimit,(selId?xs.findIndex(c=>c.id===selId):-1)+1);
+    const groups=[];xs.slice(0,lim).forEach(c=>{const l=letterOf(c);if(!groups.length||groups[groups.length-1].l!==l)groups.push({l,cs:[]});groups[groups.length-1].cs.push(c)});
+    const jump=l=>{const idx=xs.findIndex(c=>letterOf(c)===l);if(idx<0)return;if(idx>=lim)setRedLimit(idx+50);
+     setTimeout(()=>document.getElementById("letter-"+l)?.scrollIntoView({behavior:"smooth",block:"start"}),60)};
+    body=<div className="az-wrap"><div className="contact-list">{groups.map(g=><div key={g.l}><div className="letter-head" id={"letter-"+g.l}>{g.l}</div>{g.cs.map(row)}</div>)}{xs.length>lim&&<LoadMore onMore={more} left={xs.length-lim}/>}</div>
+     {xs.length>12&&<nav className="az-index" aria-label="Saltar a letra">{letters.map(l=><button type="button" key={l} onClick={()=>jump(l)}>{l}</button>)}</nav>}</div>;
+   }
+   const listCol=<>
+    <div className="section-title"><span>RELACIONES</span><button className="btn primary" onClick={()=>setModal({newContact:true})}>+ NUEVO CONTACTO</button></div>
+    <div className="red-toolbar">
+     <div className="seg">{[["mis",`Mis contactos · ${mineCount}`],["todos",`Todos · ${db.contactos.length}`]].map(([v,l])=><button type="button" key={v} className={view===v&&!rq?"on":""} onClick={()=>{setRedView(v);setRedQuery("");setRedLimit(50)}}>{l}</button>)}</div>
+     <input className="search red-filter" value={redQuery} onChange={e=>{setRedQuery(e.target.value);setRedLimit(50)}} placeholder="Filtrar por nombre, empresa, cargo o interés"/>
+     <div className="seg">{[["az","A–Z"],["empresa","Empresa"],["reciente","Reciente"]].map(([v,l])=><button type="button" key={v} className={redSort===v?"on":""} onClick={()=>{setRedSort(v);setRedLimit(50)}}>{l}</button>)}</div>
+    </div>
+    <div className="small red-caption">{rq?`${list.length} resultado${list.length===1?"":"s"} en todos los contactos`:view==="mis"?`${list.length} con actividad en los últimos 90 días, próximo contacto agendado o potencial alto`:`${list.length} contactos`}</div>
+    {list.length?body:<div className="empty">{rq?"Sin coincidencias.":"Sin contactos en esta vista."}</div>}
+   </>;
+   if(!paneMode)return <div className="section">{listCol}</div>;
+   return <div className="red-split">
+    <div className="section red-list-col">{listCol}</div>
+    <aside className="section red-pane" aria-label="Ficha del contacto">{selId?<div key={selId} className="red-pane-inner">{contactSheet(selId,true)}</div>:<div className="empty">Selecciona un contacto.</div>}</aside>
+   </div>;
+  })()}
   {tab==="pipe"&&<div className="section"><div className="section-title"><span>PIPELINE</span><button className="btn primary" onClick={()=>setModal({newOpp:true})}>+ NUEVA OPORTUNIDAD</button></div><div className="pipeline">
    {["Lead","Discovery","Propuesta","Negociación","Decisión","Ganada","Perdida"].map(stage=><div className="stage" key={stage} style={{"--st":STAGE_COLORS[stage]}}><div className="stage-head"><span className="stage-dot"/>{stage.toUpperCase()}<span className="stage-count">{db.oportunidades.filter(o=>o.etapa===stage).length}</span></div>{db.oportunidades.filter(o=>o.etapa===stage).map(o=><Opportunity key={o.id} o={o}/>)}{!db.oportunidades.some(o=>o.etapa===stage)&&<div className="empty stage-empty">Sin oportunidades</div>}</div>)}
   </div><details className="section nurturing-section"><summary className="stage-head" style={{"--st":STAGE_COLORS.Nurturing}}><span className="stage-dot"/>NURTURING<span className="stage-count">{nurturing.length}</span></summary>{nurturing.map(o=><Opportunity key={o.id} o={o}/>)}{!nurturing.length&&<div className="empty">SIN OPORTUNIDADES EN NURTURING.</div>}</details></div>}
@@ -1722,6 +2080,10 @@ function App(){
    <div className="actions"><button className="btn dim" onClick={loadCloud}>SINCRONIZAR AHORA</button></div>
    </div>
    <div className="data-grid">{[["EMPRESAS",db.empresas],["CONTACTOS",db.contactos],["OPORTUNIDADES",db.oportunidades],["ACTIVIDADES",db.actividades],["TAREAS",db.tareas],["NOTAS",db.notas],["TRIGGERS",db.triggers],["RADAR",db.radar],["LICITACIONES",db.licitaciones],["INICIATIVAS",db.iniciativas]].map(([label,xs])=><div className="stat" key={label}><b>{(xs||[]).length}</b><span className="small">{label}</span></div>)}</div>
+   <hr/>
+   <div className="section-title"><span>PREFERENCIAS</span></div>
+   <div className="card pref-row"><div><div className="title">Sonidos de interfaz</div><div className="meta">Clic suave al presionar, al abrir fichas y al guardar. Se guarda en este dispositivo.</div></div>
+    <button type="button" role="switch" aria-checked={soundOn} aria-label="Sonidos de interfaz" className={"switch"+(soundOn?" on":"")} onClick={()=>{const v=!soundOn;UISound.setEnabled(v);setSoundOn(v);if(v)UISound.play("success")}}><span/></button></div>
    <hr/>
    <div className="section-title"><span>RESPALDO</span><span>JSON</span></div>
    <div className="card">
@@ -1806,7 +2168,7 @@ function App(){
  const oppCount=(db.oportunidades||[]).filter(o=>o.iniciativaId===i.id).length;
  return <>
    <div className="section-title"><span>INICIATIVA COMERCIAL</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
-    <div className="ent-hero"><Glyph kind="iniciativa" size={56}/><div className="ent-body"><div className="title ent-hero-title">{i.nombre}</div><div className="ent-refs">{emp(i.empresaId)?<Chip kind="empresa" name={emp(i.empresaId).nombre} onClick={()=>setModal({viewCompany:i.empresaId})}/>:<span className="meta">Sin partner</span>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>setModal({viewContact:c.id})}/>}</div></div></div>
+    <div className="ent-hero"><Glyph kind="iniciativa" size={56}/><div className="ent-body"><div className="title ent-hero-title">{i.nombre}</div><div className="ent-refs">{emp(i.empresaId)?<Chip kind="empresa" name={emp(i.empresaId).nombre} onClick={()=>setModal({viewCompany:i.empresaId})}/>:<span className="meta">Sin partner</span>}{c&&<Chip kind="persona" name={c.nombre} onClick={()=>openContact(c.id)}/>}</div></div></div>
    <div><span className="tag">{i.tipo}</span><span className="tag">{i.estado}</span></div>
    <div className="meta">INICIO: {i.inicio||"—"} · PRÓXIMO STATUS: {i.proximoStatus||"—"}<br/>OBJETIVO: {i.objetivo||"—"}</div>
    <div className="actions">
@@ -1908,69 +2270,7 @@ function App(){
        <label>PRÓXIMO CONTACTO</label><input name="proximo" type="date" defaultValue={c.proximo||""}/>
        <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form></>
-    })():modal.viewContact?(()=>{
-      const c=db.contactos.find(x=>x.id===modal.viewContact); if(!c)return <><div className="empty">CONTACTO NO ENCONTRADO (PUEDE HABER SIDO ELIMINADO).</div><div className="actions"><button className="btn dim" onClick={()=>setModal(false)}>CERRAR</button></div></>; const acts=db.actividades.filter(a=>a.contactoId===c.id).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
-      const notes=(db.notas||[]).filter(n=>n.contactoId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-      const tasks=(db.tareas||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(a.completada-b.completada)||((a.fecha||"9999").localeCompare(b.fecha||"9999")));
-      const contactTriggers=(db.triggers||[]).filter(t=>t.contactoId===c.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
-      const contactOpps=(db.oportunidades||[]).filter(o=>(o.contactos||[]).includes(c.id)).sort((a,b)=>{
-       const closed=x=>["Ganada","Perdida"].includes(x.etapa)?1:0;
-       return closed(a)-closed(b)||((a.fecha||"9999").localeCompare(b.fecha||"9999"))||a.nombre.localeCompare(b.nombre,"es");
-      });
-      return <><div className="section-title"><span>FICHA CONTACTO</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
-        <div className="ent-hero"><Avatar name={c.nombre} size={56}/><div className="ent-body"><div className="title ent-hero-title">{c.nombre}</div><div className="ent-sub">{c.cargo||"Sin cargo"}</div><div className="ent-refs">{emp(c.empresaId)?<Chip kind="empresa" name={emp(c.empresaId).nombre} onClick={()=>setModal({viewCompany:c.empresaId})}/>:<span className="meta">Sin empresa</span>}</div></div></div>
-       <div className="meta">RELACIÓN: {c.estado} · POTENCIAL: {c.potencial}<br/>ROL: {c.rolDecision||"Sin definir"} · POSICIÓN: {c.posicion||"Desconocida"}<br/>ORIGEN: {c.origen||"—"}</div>
-       <div className="contact-links">
-        <div className="contact-link-row"><span className="contact-link-label">EMAIL</span><span className="contact-link-value">{c.email||"—"}</span>{c.email?<button className="contact-link-action" onClick={()=>location.href="mailto:"+c.email}>[ENVIAR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
-        <div className="contact-link-row"><span className="contact-link-label">TELÉFONO</span><span className="contact-link-value">{c.telefono||"—"}</span>{c.telefono?<button className="contact-link-action" onClick={()=>window.open("https://wa.me/"+c.telefono.replace(/\D/g,""),"_blank","noopener,noreferrer")}>[WHATSAPP →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
-        <div className="contact-link-row"><span className="contact-link-label">LINKEDIN</span><span className="contact-link-value">{c.linkedin||"—"}</span>{c.linkedin?<button className="contact-link-action" onClick={()=>{let u=c.linkedin.trim();if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener,noreferrer")}}>[ABRIR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
-       </div>
-       {(()=>{const jefe=db.contactos.find(x=>x.id===c.reportaA);return <div style={{marginTop:"10px"}}><div className="small">REPORTA A</div>{jefe?<div className="card" style={{margin:"7px 0",padding:"9px 11px"}}><div className="row"><div><div className="title">{jefe.nombre}</div><div className="meta">{jefe.cargo||"SIN CARGO"} · {jefe.rolDecision||"Sin definir"} · {jefe.posicion||"Desconocida"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:jefe.id})}>VER FICHA →</button></div></div>:<div className="meta">SIN JEFE DEFINIDO</div>}</div>})()}
-       {(()=>{
-         const reports=db.contactos.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-         return <div style={{marginTop:"10px"}}>
-           <div className="small">REPORTES DIRECTOS · {reports.length}</div>
-           {reports.length?reports.map(r=><div key={r.id} className="card" style={{margin:"7px 0",padding:"9px 11px",cursor:"pointer"}} onClick={()=>setModal({viewContact:r.id})}><div className="row"><div><div className="title">{r.nombre}</div><div className="meta">{r.cargo||"SIN CARGO"} · {r.rolDecision||"Sin definir"} · {r.posicion||"Desconocida"}</div></div><span className="tag">FICHA</span></div></div>):<div className="meta">NINGUNO REGISTRADO</div>}
-         </div>;
-       })()}
-       {(()=>{
-         const companyContacts=db.contactos.filter(x=>x.empresaId===c.empresaId);
-         const byId=new Map(companyContacts.map(x=>[x.id,x]));
-         const visible=new Map();
-         let cur=c,guard=0;
-         while(cur&&guard++<30){visible.set(cur.id,cur);cur=cur.reportaA?byId.get(cur.reportaA):null;}
-         const addDesc=(parent,depth=0)=>{if(!parent||depth>20)return;companyContacts.filter(x=>x.reportaA===parent.id).forEach(k=>{visible.set(k.id,k);addDesc(k,depth+1)})};
-         addDesc(c);
-         const vs=[...visible.values()], ids=new Set(vs.map(x=>x.id));
-         const roots=vs.filter(x=>!x.reportaA||!ids.has(x.reportaA)).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
-         const renderNode=(x,path=new Set())=>{if(!x||path.has(x.id))return null;const next=new Set(path);next.add(x.id);const kids=vs.filter(k=>k.reportaA===x.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));const selected=x.id===c.id;return <li key={x.id}><div className="org-node" style={selected?{borderWidth:"2px",boxShadow:"0 0 14px rgba(10,132,255,.45)"}:null} onClick={()=>setModal({viewContact:x.id})}><div className="org-name">{selected?"> ":""}{x.nombre}</div><div className="org-role">{x.cargo||"SIN CARGO"}</div><div className="org-meta">{x.rolDecision||"Sin definir"} · {x.posicion||"Desconocida"}</div>{selected&&<div className="org-meta">[ CONTACTO ACTUAL ]</div>}</div>{kids.length>0&&<ul>{kids.map(k=>renderNode(k,next))}</ul>}</li>};
-         return <><hr/><div className="section-title"><span>MAPA DE RELACIONES</span><span>{vs.length} PERSONAS</span></div><div className="org-legend">CONTEXTO JERÁRQUICO · SUPERIORES + REPORTES DEL CONTACTO</div><OrgViewport><div className="org-tree"><ul>{roots.map(r=>renderNode(r))}</ul></div></OrgViewport></>;
-       })()}
-       <div>{(c.intereses||[]).map(x=><span className="tag" key={x}>{x}</span>)}</div><hr/>
-       <div className="small">NOTA</div><NoteText text={c.nota} empty="—"/><hr/>
-       <div className="small">ÚLTIMO CONTACTO: {c.ultimo||"—"} · PRÓXIMO: {c.proximo||"—"}</div>
-       <div className="actions">
-        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
-       </div>
-       <hr/><div className="section-title"><span>TRIGGERS / SEÑALES</span><span>{contactTriggers.length}</span></div>
-       {contactTriggers.length?contactTriggers.map(t=><div className="card" key={t.id}><div className="row"><div><div className="title">{t.titulo}</div><div className="meta">{t.fecha} · {t.tipo} · {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` · ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div></div><span className="tag">{t.relevancia}</span></div><NoteText text={t.descripcion} empty="—" small/><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button>{t.estado==="Nuevo"&&<button className="btn primary" onClick={()=>updateTriggerState(t.id,"Revisado")}>REVISADO</button>}<button className="btn" onClick={()=>setModal({newTask:true,company:t.empresaId,contact:c.id,opp:t.oportunidadId||"",trigger:t.id})}>+ TAREA</button></div></div>):<div className="empty">SIN TRIGGERS ASOCIADOS.</div>}
-       <hr/><div className="section-title"><span>INICIATIVAS COMERCIALES</span><span>{(db.iniciativas||[]).filter(i=>i.contactoId===c.id).length}</span></div>
-       {(db.iniciativas||[]).filter(i=>i.contactoId===c.id).map(i=><div className="card" key={i.id}><div className="row"><div><div className="title">{i.nombre}</div><div className="meta">{i.tipo} · {i.cuentas.length} CUENTAS · STATUS: {i.proximoStatus||"—"}</div></div><span className="tag">{i.estado}</span></div><div className="actions"><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VER →</button><button className="btn dim" onClick={()=>setModal({editInitiative:i.id})}>EDITAR</button></div></div>)}
-       <hr/><div className="section-title"><span>OPORTUNIDADES</span><span>{contactOpps.length}</span></div>
-       {contactOpps.length?contactOpps.map(o=><div className="card" key={o.id}><div className="row"><div><div className="title">{emp(o.empresaId)?.nombre||"SIN EMPRESA"}</div><div>{o.nombre}</div></div><span className="tag">{o.etapa}</span></div><div className="meta">PRÓX &gt; {o.proxima||"SIN PRÓXIMA ACCIÓN"} {o.fecha&&` · ${o.fecha}`}</div><div className="actions"><button className="btn primary" onClick={()=>setModal({viewOpp:o.id})}>ABRIR →</button></div></div>):<div className="empty">SIN OPORTUNIDADES ASOCIADAS.</div>}
-       <hr/><div className="section-title"><span>TAREAS</span><span>{tasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
-       {taskList(tasks)}
-       <hr/><div className="section-title"><span>NOTAS</span><span>{notes.length}</span></div>
-       {notes.length?notes.map(n=><div className="card" key={n.id}><div className="row"><div className="title">NOTA</div><span className="small">{new Date(n.fecha).toLocaleString("es-CL")}</span></div><NoteText text={n.texto}/><div className="actions"><button className="btn danger" onClick={()=>deleteNote(n.id)}>BORRAR</button></div></div>):<div className="empty">SIN NOTAS.</div>}
-       <hr/><div className="section-title"><span>HISTORIAL DE TOQUES</span><span>{acts.length} TOQUES</span></div>
-       {acts.length?(()=>{
-         const icon=t=>({"Llamada":"📞","Reunión":"🤝","Email":"✉️","WhatsApp":"💬","LinkedIn":"🔗","Nota":"📝"}[t]||"●");
-         const fmt=d=>{if(!d)return "—";const [y,m,day]=d.slice(0,10).split("-");return `${day}/${m}`};
-         const latest=acts[acts.length-1];
-         return <><div className="touch-summary">{acts.length} TOQUES · ÚLTIMO {latest?.fecha||"—"} · {latest?.tipo||"—"}</div><div className="touch-timeline-wrap"><div className="touch-timeline" style={{minWidth:acts.length<=5?"100%":`${Math.max(640,acts.length*112)}px`}}><div className="touch-axis"/>{acts.map((a,idx)=><button key={a.id} type="button" className="touch-point" style={{left:`${acts.length===1?50:6+(idx/(acts.length-1))*88}%`}} title={`${a.fecha||""} · ${a.tipo||""}${a.nota?` · ${a.nota}`:""}`} onClick={()=>setModal({editActivity:a.id})}><span className="touch-date">{fmt(a.fecha)}</span><span className="touch-stem"/><span className="touch-dot"/><span className="touch-kind">{icon(a.tipo)} {a.tipo||"TOQUE"}</span></button>)}</div></div><div className="small" style={{marginTop:"6px"}}>← MÁS ANTIGUO &nbsp;&nbsp; MÁS RECIENTE → &nbsp; · &nbsp; TOCA UN HITO PARA EDITAR</div></>
-       })():<div className="empty">SIN ACTIVIDAD REGISTRADA.</div>}
-      </>
-    })():(modal.newOpp||modal.editOpp)?(()=>{
+    })():modal.viewContact?contactSheet(modal.viewContact):(modal.newOpp||modal.editOpp)?(()=>{
       const o=modal.editOpp?db.oportunidades.find(x=>x.id===modal.editOpp):{};
       const selected=o.contactos||[];
       return <><div className="section-title"><span>{modal.editOpp?"EDITAR OPORTUNIDAD":"NUEVA OPORTUNIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
@@ -2024,7 +2324,7 @@ function App(){
            const kids=vs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
            const inside=oppIds.has(c.id);
            return <li key={c.id}>
-             <div className="org-node" onClick={()=>setModal({viewContact:c.id})} style={!inside?{opacity:.55,borderStyle:"dashed"}:{}}>
+             <div className="org-node" onClick={()=>openContact(c.id)} style={!inside?{opacity:.55,borderStyle:"dashed"}:{}}>
                <div className="org-name">{c.nombre}</div>
                <div className="org-role">{c.cargo||"SIN CARGO"}</div>
                <div className="org-meta">{c.rolDecision||"Sin definir"} · {c.posicion||"Desconocida"}</div>
@@ -2078,7 +2378,7 @@ function App(){
         <button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button>
        </div>
        <hr/><div className="section-title"><span>CONTACTOS</span><span>{cs.length}</span></div>
-       {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} · {c.estado} · {c.potencial} · {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>setModal({viewContact:c.id})}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
+       {cs.length?cs.map(c=><div className="card" key={c.id}><div className="row"><div><div className="title">{c.nombre}</div><div className="meta">{c.cargo||"SIN CARGO"} · {c.estado} · {c.potencial} · {c.rolDecision||"Sin definir"}</div></div><button className="btn dim" onClick={()=>openContact(c.id)}>FICHA</button></div></div>):<div className="empty">SIN CONTACTOS.</div>}
        <hr/><div className="section-title"><span>MAPA DE RELACIONES</span><span>{cs.length} PERSONAS</span></div>
        <div className="org-legend">JERARQUÍA REGISTRADA · TOCA UNA PERSONA PARA ABRIR SU FICHA</div>
        {cs.length?(()=>{
@@ -2089,7 +2389,7 @@ function App(){
            const next=new Set(path);next.add(c.id);
            const kids=cs.filter(x=>x.reportaA===c.id).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
            return <li key={c.id}>
-             <div className="org-node" onClick={()=>setModal({viewContact:c.id})}>
+             <div className="org-node" onClick={()=>openContact(c.id)}>
                <div className="org-name">{c.nombre}</div>
                <div className="org-role">{c.cargo||"SIN CARGO"}</div>
                <div className="org-meta">{c.rolDecision||"Sin definir"} · {c.posicion||"Desconocida"}</div>
