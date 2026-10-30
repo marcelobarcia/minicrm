@@ -939,6 +939,28 @@ header{padding:10px 14px}
 .contact-row.is-selected .row-quick{background:rgba(255,255,255,.22);color:#fff}
 .contact-row.is-selected+.contact-row,.contact-row+.contact-row.is-selected{border-top-color:transparent}
 
+/* V0.94 — iPhone fit. iOS Safari zooms the page when a field under 16px gets focus, which
+   left the layout shifted sideways; fields are 16px on phones. The page also never scrolls
+   horizontally: overflow is clipped (clip, not hidden, so sticky headers keep working) and long
+   unbroken text (URLs, emails) wraps instead of pushing the layout wider. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{overflow-x:clip;max-width:100%}
+.app{overflow-x:clip}
+.card,.section,.modal,.meta,.title,.small,.ent-sub,.note-text-body{overflow-wrap:anywhere;min-width:0}
+.stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row>.tag,.row>.prio,.row>.small,.row>span:last-child:not(.title){flex:0 0 auto;white-space:nowrap}
+.row>div:first-child{min-width:0}
+@media(max-width:700px){
+ input,select,textarea,.search,.global-search-input,.red-filter{font-size:16px!important}
+ .app>.overlay .modal{width:100%;max-width:100vw}
+}
+
+/* V0.95 — Scrolling inside a sheet never chains to the page behind. */
+.modal{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.app>.overlay{overscroll-behavior:contain;touch-action:none}
+.app>.overlay .modal{touch-action:pan-y}
+html.sheet-open{overflow:hidden}
+
 /* V0.93 — Native dropdown lists: Windows/Chrome paints the option popup with a white
    background unless options get explicit colors, which left light text unreadable. */
 select{background-color:#2a2a2d;color-scheme:dark}
@@ -1243,6 +1265,17 @@ function App(){
  // Pop when a sheet or dialog opens or closes.
  const sheetOpen=!!modal||!!dialog, sheetWasOpen=React.useRef(sheetOpen);
  useEffect(()=>{if(sheetOpen!==sheetWasOpen.current){UISound.play(sheetOpen?"open":"close");sheetWasOpen.current=sheetOpen}},[sheetOpen]);
+ // V0.95 — While a sheet or dialog is open the page behind must not move. iOS Safari ignores
+ // overflow:hidden on body for touch scrolling, so the body is pinned in place (position:fixed
+ // at the current offset) and restored to the same scroll position when the sheet closes.
+ useEffect(()=>{
+  if(!sheetOpen)return;
+  const y=window.scrollY, b=document.body.style;
+  const prev={position:b.position,top:b.top,left:b.left,right:b.right,width:b.width};
+  Object.assign(b,{position:"fixed",top:`-${y}px`,left:"0",right:"0",width:"100%"});
+  document.documentElement.classList.add("sheet-open");
+  return ()=>{Object.assign(b,prev);document.documentElement.classList.remove("sheet-open");window.scrollTo(0,y)};
+ },[sheetOpen]);
  useEffect(()=>{setContactTab("resumen")},[modal&&modal.viewContact,redSelected]);
  // V0.91 — Two-pane Red on wide screens (list + contact sheet side by side, like Mail).
  const WIDE_MQ="(min-width: 1100px)";
@@ -1730,7 +1763,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM · ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.93</span></div>
+  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.95</span></div>
   <div className="meta">SUPABASE AUTH · CLOUD · DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -1854,7 +1887,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.93</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.95</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>SUPABASE <span style={{color:cloudStatus==="CONECTADO"?"var(--success)":"var(--dim)"}}>{cloudStatus==="CONECTADO"?"●":"○"}</span></div>
