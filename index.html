@@ -955,6 +955,12 @@ html,body{overflow-x:clip;max-width:100%}
  .app>.overlay .modal{width:100%;max-width:100vw}
 }
 
+/* V0.96 — Back button for stacked sheets */
+.sheet-back{display:inline-flex;align-items:center;gap:3px;max-width:100%;border:0;background:none;color:var(--amber);font-size:14px;font-weight:500;padding:2px 6px 8px 0;margin:-4px 0 2px -4px;cursor:pointer}
+.sheet-back span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-back:hover{color:var(--accent-hover)}
+.sheet-back:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px}
+
 /* V0.95 — Scrolling inside a sheet never chains to the page behind. */
 .modal{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .app>.overlay{overscroll-behavior:contain;touch-action:none}
@@ -1236,7 +1242,31 @@ const OpportunityContactPicker=({o,selected})=>{const {db,emp}=React.useContext(
   </>;
  };
 function App(){
- const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModal]=useState(false); const [q,setQ]=useState(""); const [hoyOpen,setHoyOpen]=useState(null);
+ const [db,setDb]=useState(load); const [tab,setTab]=useState("hoy"); const [modal,setModalRaw]=useState(false);
+ // V0.96 — Sheets stack like iOS navigation. Opening a sheet from a record view (company,
+ // contact, deal, radar, initiative, tender) keeps that view underneath; closing, cancelling or
+ // saving goes back one level instead of dropping to the main screen. Each stacked view keeps
+ // its contact tab and scroll position. Forms and the quick-action menu are never stacked.
+ const [modalStack,setModalStack]=useState([]);
+ const sheetScrollRef=React.useRef(null);
+ const VIEW_KEYS=["viewContact","viewOpp","viewCompany","viewRadar","viewInitiative","viewTender"];
+ const isViewModal=m=>!!(m&&typeof m==="object"&&VIEW_KEYS.some(k=>m[k]));
+ const modalKey=m=>JSON.stringify(m&&typeof m==="object"?Object.fromEntries(Object.entries(m).filter(([k])=>k[0]!=="_")):m);
+ function setModal(next){
+  const el=document.querySelector(".app>.overlay .modal");
+  if(next){
+   if(isViewModal(modal)&&modalKey(modal)!==modalKey(next))
+    setModalStack(st=>[...st,{...modal,_tab:modal.viewContact?contactTab:undefined,_scroll:el?el.scrollTop:0}].slice(-20));
+   sheetScrollRef.current=0;
+   setModalRaw(next);
+  }else if(modalStack.length){
+   const prev=modalStack[modalStack.length-1];
+   sheetScrollRef.current=prev._scroll||0;
+   setModalStack(modalStack.slice(0,-1));
+   setModalRaw(prev);
+  }else setModalRaw(false);
+ }
+ function closeAllModals(){setModalStack([]);setModalRaw(false)} const [q,setQ]=useState(""); const [hoyOpen,setHoyOpen]=useState(null);
  const [dataMsg,setDataMsg]=useState("");
  const [dialog,setDialog]=useState(null);
  const [lastBackup,setLastBackup]=useState(safeStorage.get(KEY+"_lastBackup")||"");
@@ -1276,7 +1306,13 @@ function App(){
   document.documentElement.classList.add("sheet-open");
   return ()=>{Object.assign(b,prev);document.documentElement.classList.remove("sheet-open");window.scrollTo(0,y)};
  },[sheetOpen]);
- useEffect(()=>{setContactTab("resumen")},[modal&&modal.viewContact,redSelected]);
+ useEffect(()=>{setContactTab((modal&&modal._tab)||"resumen")},[modal&&modal.viewContact,modal&&modal._tab,redSelected]);
+ useEffect(()=>{
+  if(!modal||!modalStack.length)return;
+  const gone=(modal.viewContact&&!db.contactos.some(x=>x.id===modal.viewContact))||(modal.viewOpp&&!db.oportunidades.some(x=>x.id===modal.viewOpp))||(modal.viewCompany&&!db.empresas.some(x=>x.id===modal.viewCompany))||(modal.viewRadar&&!(db.radar||[]).some(x=>x.id===modal.viewRadar))||(modal.viewInitiative&&!(db.iniciativas||[]).some(x=>x.id===modal.viewInitiative))||(modal.viewTender&&!(db.licitaciones||[]).some(x=>x.id===modal.viewTender));
+  if(gone)setModal(false);
+ },[db,modal]);
+ React.useLayoutEffect(()=>{if(sheetScrollRef.current==null)return;const el=document.querySelector(".app>.overlay .modal");if(el)el.scrollTop=sheetScrollRef.current;sheetScrollRef.current=null},[modal]);
  // V0.91 — Two-pane Red on wide screens (list + contact sheet side by side, like Mail).
  const WIDE_MQ="(min-width: 1100px)";
  const [wide,setWide]=useState(()=>!!(window.matchMedia&&window.matchMedia(WIDE_MQ).matches));
@@ -1379,7 +1415,7 @@ function App(){
   const {error}=await sb.auth.signInWithPassword({email:f.get("email"),password:f.get("password")});
   if(error){setAuthMsg("ERROR: "+error.message);return;} setAuthMsg("");
  }
- async function logout(){await sb.auth.signOut();}
+ async function logout(){closeAllModals();await sb.auth.signOut();}
  useEffect(()=>{safeStorage.set(KEY,JSON.stringify(db));},[db]);
  async function cloudError(error){if(error){showInfo("ERROR SUPABASE",error.message);return true}return false}
  const emp=id=>db.empresas.find(x=>x.id===id);
@@ -1450,7 +1486,7 @@ function App(){
  }
  // Opening a person: on the wide Red layout it selects the contact in the side pane,
  // everywhere else it opens the contact sheet.
- function openContact(id){if(tab==="red"&&wide){setRedSelected(id);setModal(false)}else setModal({viewContact:id})}
+ function openContact(id){if(tab==="red"&&wide){setRedSelected(id);closeAllModals()}else setModal({viewContact:id})}
  // V0.86 — Form submits go through guard(): repeat taps are ignored while Supabase answers
  // (no duplicate records on slow mobile data) and a clean save shows a short "Guardado".
  const savingRef=React.useRef(false), failedRef=React.useRef(false);
@@ -1763,7 +1799,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM · ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.95</span></div>
+  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.96</span></div>
   <div className="meta">SUPABASE AUTH · CLOUD · DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -1887,7 +1923,7 @@ function App(){
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.95</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.96</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>SUPABASE <span style={{color:cloudStatus==="CONECTADO"?"var(--success)":"var(--dim)"}}>{cloudStatus==="CONECTADO"?"●":"○"}</span></div>
@@ -2172,6 +2208,9 @@ function App(){
    {[["hoy","F1","HOY"],["pulse","F2","PULSO"],["red","F3","RED"],["pipe","F4","PIPE"],["emp","F5","EMP"],["radar","F6","RADAR"],["log","F7","LOG"],["data","F8","DATOS"]].map(n=><button key={n[0]} className={tab===n[0]?"active":""} onClick={()=>setTab(n[0])} aria-label={n[2]}><span className="nav-ico"><svg {...svgProps} width="22" height="22">{NAV_ICONS[n[0]]}</svg></span><span className="nav-label">{n[2]}</span></button>)}
   </nav>}
   {modal&&<div className="overlay" onClick={()=>setModal(false)}><div className="modal" onClick={e=>e.stopPropagation()}>
+    {modalStack.length>0&&(()=>{const prev=modalStack[modalStack.length-1];
+     const label=prev.viewCompany?emp(prev.viewCompany)?.nombre:prev.viewContact?db.contactos.find(x=>x.id===prev.viewContact)?.nombre:prev.viewOpp?db.oportunidades.find(x=>x.id===prev.viewOpp)?.nombre:prev.viewRadar?(db.radar||[]).find(x=>x.id===prev.viewRadar)?.nombre:prev.viewInitiative?(db.iniciativas||[]).find(x=>x.id===prev.viewInitiative)?.nombre:prev.viewTender?(db.licitaciones||[]).find(x=>x.id===prev.viewTender)?.nombre:"";
+     return <button type="button" className="sheet-back" onClick={()=>setModal(false)}><svg {...svgProps} width="16" height="16" strokeWidth="2.4"><path d="M15 5l-7 7 7 7"/></svg><span>{label||"Atrás"}</span></button>})()}
     {modal.quick?<><div className="section-title"><span>ACCIÓN RÁPIDA</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
       <div className="card"><div className="actions" style={{display:"grid",gridTemplateColumns:"1fr 1fr"}}>
        <button className="btn primary" onClick={()=>setModal({newTask:true})}>✓ TAREA</button>
