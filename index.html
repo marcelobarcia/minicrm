@@ -955,6 +955,23 @@ html,body{overflow-x:clip;max-width:100%}
  .app>.overlay .modal{width:100%;max-width:100vw}
 }
 
+/* V0.97 — Minutes form and two-column form rows */
+.form-grid,.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form-grid>input,.grid2>input{margin-top:6px}
+@media(max-width:380px){.form-grid,.grid2{grid-template-columns:1fr}}
+.attendee-list{display:flex;flex-direction:column;gap:2px;background:var(--fill);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:6px}
+.attendee{display:flex!important;align-items:center;gap:10px;margin:0!important;padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--bright)!important;font-size:14px!important}
+.attendee:hover{background:rgba(255,255,255,.05)}
+.attendee input{width:auto;margin:0}
+.attendee-name{font-weight:500}
+.attendee .small{margin-left:auto;text-align:right}
+.minuta-row{padding:9px 10px}
+.minuta-row-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.inline-check{display:flex!important;align-items:center;gap:8px;margin:0!important;color:var(--text)!important;font-size:13px!important;cursor:pointer}
+.inline-check input{width:auto;margin:0}
+.actions-secondary{margin-top:4px}
+.note-minuta-title{display:inline-flex;align-items:center;gap:6px;color:var(--amber);font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;background:rgba(10,132,255,.12);padding:3px 9px;border-radius:999px}
+
 /* V0.96 — Back button for stacked sheets */
 .sheet-back{display:inline-flex;align-items:center;gap:3px;max-width:100%;border:0;background:none;color:var(--amber);font-size:14px;font-weight:500;padding:2px 6px 8px 0;margin:-4px 0 2px -4px;cursor:pointer}
 .sheet-back span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1108,9 +1125,11 @@ function parseNote(t){
  flush();
  return segs;
 }
+const MINUTA_HDR=/^(Tema|Asistentes cliente|Asistentes Ataway|Resumen|Acuerdos)\s*:/;
 const noteLine=(ln,i)=>{
  if(!ln.trim())return <div className="note-gap" key={i}/>;
- const m=ln.match(EMAIL_HDR);
+ if(ln.trim()==="MINUTA DE REUNIÓN")return <div className="note-minuta-title" key={i}><svg {...svgProps} width="14" height="14"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Minuta de reunión</div>;
+ const m=ln.match(EMAIL_HDR)||ln.match(MINUTA_HDR);
  if(m)return <div className="note-line" key={i}><b className="note-hdr">{ln.slice(0,m[0].length)}</b>{ln.slice(m[0].length)}</div>;
  if(/^\s*>/.test(ln))return <div className="note-line note-quote" key={i}>{ln}</div>;
  return <div className="note-line" key={i}>{ln}</div>;
@@ -1172,6 +1191,40 @@ const UISound=(()=>{
   setEnabled(v){enabled=!!v;safeStorage.set(KEY+"_sound",v?"on":"off")}
  };
 })();
+// V0.97 — Meeting minutes: who attended, what was discussed and what was agreed. Saved as a
+// "Reunión" activity (formatted text, no schema change); each agreement can become a task and
+// the first dated one can become the deal's next action.
+const ddmmyyyy=d=>{if(!d)return "";const [y,m,day]=d.split("-");return `${day}/${m}/${y}`};
+const MinutaForm=()=>{
+ const {db,modal,setModal,saveMinuta}=React.useContext(Ctx);
+ const initialCompany=modal.company||(modal.contact?db.contactos.find(c=>c.id===modal.contact)?.empresaId:"")||(modal.opp?db.oportunidades.find(o=>o.id===modal.opp)?.empresaId:"")||"";
+ const [companyId,setCompanyId]=React.useState(initialCompany);
+ const [rows,setRows]=React.useState([0]);
+ const contacts=db.contactos.filter(c=>c.empresaId===companyId).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+ const opps=db.oportunidades.filter(o=>o.empresaId===companyId&&!["Ganada","Perdida"].includes(o.etapa));
+ return <form onSubmit={saveMinuta}>
+  <label>EMPRESA *</label>
+  <select name="empresaId" required value={companyId} onChange={e=>setCompanyId(e.target.value)}><option value="">-- SELECCIONAR --</option>{db.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(e=><option key={e.id} value={e.id}>{e.nombre}</option>)}</select>
+  <div className="form-grid">
+   <div><label>FECHA</label><input type="date" name="fecha" defaultValue={today} required/></div>
+   <div><label>OPORTUNIDAD</label><select name="oportunidadId" defaultValue={modal.opp||(opps.length===1?opps[0].id:"")} key={companyId}><option value="">-- SIN OPORTUNIDAD --</option>{opps.map(o=><option key={o.id} value={o.id}>{o.nombre}</option>)}</select></div>
+  </div>
+  <label>TEMA / OBJETIVO</label><input name="tema" placeholder="Ej: Revisión propuesta UKG Dimension"/>
+  <label>ASISTENTES DEL CLIENTE</label>
+  <div className="attendee-list">{contacts.length?contacts.map(c=><label className="attendee" key={c.id}><input type="checkbox" name="asistente" value={c.id} defaultChecked={c.id===modal.contact}/><Avatar name={c.nombre} size={26}/><span className="attendee-name">{c.nombre}</span><span className="small">{c.cargo||""}</span></label>):<div className="small">{companyId?"Esta empresa no tiene contactos registrados.":"Selecciona una empresa."}</div>}</div>
+  <input name="otrosAsistentes" placeholder="Otros asistentes (nombres separados por coma)" style={{marginTop:"6px"}}/>
+  <label>ASISTENTES ATAWAY / INTERNOS</label><input name="internos" placeholder="Ej: Marcelo, preventa"/>
+  <label>RESUMEN DE LA REUNIÓN *</label><textarea name="resumen" required placeholder="Qué se habló: necesidades, dolores, objeciones, decisiones, contexto..."/>
+  <div className="section-title" style={{marginTop:"14px"}}><span>ACUERDOS / PRÓXIMOS PASOS</span><button type="button" className="btn dim" onClick={()=>setRows(r=>[...r,r.length?Math.max(...r)+1:0])}>+ ACUERDO</button></div>
+  {rows.map(k=><div className="card minuta-row" data-acuerdo key={k}>
+   <input name="acTexto" placeholder="Acuerdo o próximo paso"/>
+   <div className="form-grid"><input name="acResponsable" placeholder="Responsable"/><input name="acFecha" type="date"/></div>
+   <div className="minuta-row-foot"><label className="inline-check"><input type="checkbox" name="acTarea" defaultChecked/>Crear tarea</label>{rows.length>1&&<button type="button" className="btn dim" onClick={()=>setRows(r=>r.filter(x=>x!==k))}>QUITAR</button>}</div>
+  </div>)}
+  {opps.length>0&&<label className="inline-check" style={{marginTop:"10px"}}><input type="checkbox" name="updateOpp" value="yes" defaultChecked/>Usar el primer acuerdo con fecha como próxima acción de la oportunidad</label>}
+  <div className="actions"><button className="btn primary">GUARDAR MINUTA</button><button type="button" className="btn dim" onClick={()=>setModal(false)}>CANCELAR</button></div>
+ </form>;
+};
 const Ctx=React.createContext(null);
 const InitiativeForm=({i={}})=>{const {db,modal,setModal,saveInitiative}=React.useContext(Ctx);const partner=i.empresaId||modal.company||"";const [companyId,setCompanyId]=React.useState(partner);const contacts=db.contactos.filter(c=>c.empresaId===companyId);return <form onSubmit={saveInitiative}>
   <label>NOMBRE *</label><input name="nombre" required defaultValue={i.nombre||""} placeholder="Ej: Sales Play Nexsys · Territorio Q4"/>
@@ -1775,6 +1828,33 @@ function App(){
    </div></div>
    <div className="actions"><button className="btn primary" onClick={()=>toggleTask(t.id)}>{t.completada?"REABRIR":"HECHO"}</button>{!t.completada&&<button className="btn dim" onClick={()=>openTaskCalendar(t)}>CALENDAR</button>}<button className="btn dim" onClick={()=>setModal({editTask:t.id})}>EDITAR</button><button className="btn danger" onClick={()=>deleteTask(t.id)}>BORRAR</button></div></div>
  }
+ async function saveMinuta(ev){
+  ev.preventDefault();const form=ev.currentTarget,f=new FormData(form);
+  const empresaId=f.get("empresaId")||null;if(!empresaId){showInfo("FALTA EMPRESA","Selecciona la empresa de la reunión.");return}
+  const fecha=f.get("fecha")||today, oportunidadId=f.get("oportunidadId")||null;
+  const asistentes=f.getAll("asistente").map(id=>db.contactos.find(c=>c.id===id)).filter(Boolean);
+  const otros=(f.get("otrosAsistentes")||"").split(",").map(x=>x.trim()).filter(Boolean);
+  const tema=(f.get("tema")||"").trim(), internos=(f.get("internos")||"").trim(), resumen=(f.get("resumen")||"").trim();
+  const acuerdos=[...form.querySelectorAll("[data-acuerdo]")].map(r=>({texto:r.querySelector('[name="acTexto"]').value.trim(),responsable:r.querySelector('[name="acResponsable"]').value.trim(),fecha:r.querySelector('[name="acFecha"]').value,tarea:r.querySelector('[name="acTarea"]').checked})).filter(a=>a.texto);
+  const L=["MINUTA DE REUNIÓN"];
+  if(tema)L.push(`Tema: ${tema}`);
+  const nombres=[...asistentes.map(c=>c.nombre),...otros];if(nombres.length)L.push(`Asistentes cliente: ${nombres.join(", ")}`);
+  if(internos)L.push(`Asistentes Ataway: ${internos}`);
+  L.push("","Resumen:",resumen);
+  if(acuerdos.length)L.push("","Acuerdos:",...acuerdos.map((a,i)=>`${i+1}. ${a.texto}${a.responsable?` — ${a.responsable}`:""}${a.fecha?` · ${ddmmyyyy(a.fecha)}`:""}`));
+  const changes=[];let data,error;
+  ({data,error}=await sb.from("actividades").insert({user_id:session.user.id,empresa_id:empresaId,contacto_id:asistentes[0]?.id||null,oportunidad_id:oportunidadId,tipo:"Reunión",fecha,nota:L.join("\n")}).select().single());
+  if(await cloudError(error))return;changes.push(["actividades",data]);
+  // Every attendee was just met: their "último contacto" moves forward (never backwards).
+  for(const c of asistentes){if(c.ultimo&&c.ultimo>=fecha)continue;({data,error}=await sb.from("contactos").update({ultimo_contacto:fecha}).eq("id",c.id).select().single());if(await cloudError(error))return;changes.push(["contactos",data])}
+  for(const a of acuerdos.filter(a=>a.tarea)){
+   ({data,error}=await sb.from("tareas").insert({user_id:session.user.id,titulo:a.texto+(a.responsable?` (${a.responsable})`:""),fecha:a.fecha||null,prioridad:"Normal",empresa_id:empresaId,contacto_id:asistentes[0]?.id||null,oportunidad_id:oportunidadId,completada:false}).select().single());
+   if(await cloudError(error))return;changes.push(["tareas",data]);
+  }
+  const next=acuerdos.find(a=>a.fecha);
+  if(oportunidadId&&next&&f.get("updateOpp")==="yes"){({data,error}=await sb.from("oportunidades").update({proxima_accion:next.texto,fecha_proxima_accion:next.fecha}).eq("id",oportunidadId).select().single());if(await cloudError(error))return;changes.push(["oportunidades",data])}
+  applyCloudRows(changes);setModal(false);
+ }
  async function saveOpportunity(ev){
   ev.preventDefault(); const f=new FormData(ev.currentTarget);
   const contactos=[...ev.currentTarget.querySelectorAll('input[name="oppContact"]:checked')].map(x=>x.value);
@@ -1799,7 +1879,7 @@ function App(){
  }
  if(!authReady) return <div className="login-shell crt"><div className="login-box"><div className="title">BD-CRM · ATAWAY</div><div className="meta">INICIALIZANDO CONEXIÓN SEGURA...</div></div></div>;
  if(!session) return <div className="login-shell crt"><div className="login-box">
-  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.96</span></div>
+  <div className="section-title"><span>BD-CRM · ACCESO</span><span>v0.97</span></div>
   <div className="meta">SUPABASE AUTH · CLOUD · DATOS PROTEGIDOS POR RLS</div>
   <form onSubmit={login}><label>EMAIL</label><input name="email" type="email" autoComplete="username" required/>
   <label>CONTRASEÑA</label><input name="password" type="password" autoComplete="current-password" required/>
@@ -1865,7 +1945,7 @@ function App(){
         <div className="contact-link-row"><span className="contact-link-label">LINKEDIN</span><span className="contact-link-value">{c.linkedin||"—"}</span>{c.linkedin?<button className="contact-link-action" onClick={()=>{let u=c.linkedin.trim();if(!/^https?:\/\//i.test(u))u="https://"+u;window.open(u,"_blank","noopener,noreferrer")}}>[ABRIR →]</button>:<button className="contact-link-action" disabled>[—]</button>}</div>
        </div>
        <div className="actions">
-        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn primary" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
+        <button className="btn primary" onClick={()=>setModal({contact:c.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newMinuta:true,contact:c.id,company:c.empresaId})}>+ MINUTA</button><button className="btn primary" onClick={()=>setModal({newOpp:true,contact:c.id,company:c.empresaId})}>+ OPORTUNIDAD</button><button className="btn" onClick={()=>setModal({newTask:true,contact:c.id,company:c.empresaId})}>+ TAREA</button><button className="btn" onClick={()=>setModal({newNote:true,contact:c.id,company:c.empresaId})}>+ NOTA</button><button className="btn dim" onClick={()=>setModal({newTrigger:true,contact:c.id,company:c.empresaId})}>+ TRIGGER</button><button className="btn dim" onClick={()=>setModal({editContact:c.id})}>EDITAR</button>
        </div>
        <div className="seg seg-tabs" role="tablist">{tabs.map(([k,l,n])=><button type="button" role="tab" aria-selected={contactTab===k} key={k} className={contactTab===k?"on":""} onClick={()=>setContactTab(k)}>{l}{n?<span className="seg-count">{n}</span>:null}</button>)}</div>
        <div className="tab-panel" key={contactTab}>
@@ -1919,11 +1999,11 @@ function App(){
        </div>
       </>
  };
- return <Ctx.Provider value={{db,modal,setModal,emp,saveInitiative:guard(saveInitiative),saveTender:guard(saveTender),deleteTender}}><div className={"app crt"+(saving?" saving":"")+(paneMode?" app-wide":"")}>
+ return <Ctx.Provider value={{db,modal,setModal,emp,saveInitiative:guard(saveInitiative),saveTender:guard(saveTender),deleteTender,saveMinuta:guard(saveMinuta)}}><div className={"app crt"+(saving?" saving":"")+(paneMode?" app-wide":"")}>
   <header>
    <div className="brand header-brandline">
     <div className="header-main">
-     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.96</div></div>
+     <div><div className="header-title"><strong>NINJA SALES TERMINAL</strong></div><div className="small header-sub">PERSONAL SALES CRM · v0.97</div></div>
     </div>
     <div className="header-hero"><img src="ninja-header-portrait.png" alt="Ninja Sales Terminal"/></div>
     <div className="small header-status">{today}<br/>SUPABASE <span style={{color:cloudStatus==="CONECTADO"?"var(--success)":"var(--dim)"}}>{cloudStatus==="CONECTADO"?"●":"○"}</span></div>
@@ -2217,12 +2297,13 @@ function App(){
        <button className="btn primary" onClick={()=>setModal({newNote:true})}>📝 NOTA</button>
        <button className="btn primary" onClick={()=>setModal({newRadar:true})}>⌁ RADAR</button>
        <button className="btn" onClick={()=>setModal({})}>☎ ACTIVIDAD</button>
+       <button className="btn" onClick={()=>setModal({newMinuta:true})}>🗒 MINUTA</button>
        <button className="btn" onClick={()=>setModal({newContact:true})}>👤 CONTACTO</button>
        <button className="btn" onClick={()=>setModal({newOpp:true})}>$ OPORTUNIDAD</button>
        <button className="btn" onClick={()=>setModal({newTender:true})}>▤ LICITACIÓN</button>
        <button className="btn" onClick={()=>setModal({newInitiative:true})}>◎ INICIATIVA</button>
       </div></div>
-     </>:(modal.newInitiative||modal.editInitiative)?<><div className="section-title"><span>{modal.editInitiative?"EDITAR INICIATIVA":"NUEVA INICIATIVA COMERCIAL"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div><InitiativeForm i={modal.editInitiative?(db.iniciativas||[]).find(x=>x.id===modal.editInitiative)||{}:{empresaId:modal.company||"",contactoId:modal.contact||""}}/></>:modal.statusInitiative?(()=>{const i=(db.iniciativas||[]).find(x=>x.id===modal.statusInitiative);if(!i)return <div className="empty">INICIATIVA NO ENCONTRADA.</div>;const last=(i.statuses||[]).slice(-1)[0];const since=last?.fecha||i.inicio||"0000-00-00";const states=["Pendiente","Investigar","Contactar","Contactado","Reunión","Oportunidad","Descartada"];const accountRows=(i.cuentas||[]).map(c=>{const e=emp(c.empresaId);const acts=(db.actividades||[]).filter(a=>a.empresaId===c.empresaId&&a.iniciativaId===i.id&&a.fecha>since).sort((a,b)=>b.fecha.localeCompare(a.fecha));const opps=(db.oportunidades||[]).filter(o=>o.empresaId===c.empresaId&&o.iniciativaId===i.id&&!['Ganada','Perdida'].includes(o.etapa));return {...c,e,acts,opps}});const moved=accountRows.filter(x=>x.acts.length||x.opps.length).length;return <><div className="section-title"><span>STATUS · {i.nombre}</span><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VOLVER</button></div><div className="meta">PARTNER: {emp(i.empresaId)?.nombre||"—"} · DESDE ÚLTIMO STATUS: {since}<br/>CUENTAS: {accountRows.length} · CON MOVIMIENTO: {moved} · SIN MOVIMIENTO: {accountRows.length-moved}</div><form onSubmit={guard(e=>saveInitiativeStatus(e,i.id))}>{accountRows.map(x=><div className="card" key={x.empresaId}><div className="row"><div><div className="title">{x.e?.nombre||"EMPRESA"}</div><div className="meta">{x.acts.length?`ÚLTIMA: ${x.acts[0].fecha} · ${x.acts[0].tipo}`:"SIN ACTIVIDAD DESDE EL ÚLTIMO STATUS"}{x.opps.length?` · ${x.opps.length} OPORTUNIDAD(ES) ABIERTA(S)`:""}</div></div><select name={`estado_${x.empresaId}`} defaultValue={x.estado||"Pendiente"} style={{width:"auto",minWidth:"130px"}}>{states.map(z=><option key={z}>{z}</option>)}</select></div><NoteText text={x.acts[0]?.nota} small lines={3}/><div className="actions"><button type="button" className="btn dim" onClick={()=>setModal({viewCompany:x.empresaId})}>VER CUENTA →</button>{x.opps[0]&&<button type="button" className="btn dim" onClick={()=>setModal({viewOpp:x.opps[0].id})}>VER OPORTUNIDAD →</button>}</div></div>)}<hr/><div className="section-title"><span>DEFINICIONES DEL STATUS</span><span>HASTA 5</span></div>{[0,1,2,3,4].map(n=><div className="card" data-acuerdo key={n}><select name="acCuenta"><option value="">GENERAL</option>{accountRows.map(x=><option key={x.empresaId} value={x.empresaId}>{x.e?.nombre}</option>)}</select><input name="acTexto" placeholder="Definición / próximo paso"/><div className="grid2"><input name="acResponsable" placeholder="Responsable"/><input name="acFecha" type="date"/></div></div>)}<label>RESUMEN / NOTAS DEL STATUS</label><textarea name="resumen"/><label>PRÓXIMO STATUS</label><input name="proximoStatus" type="date"/><div className="actions"><button className="btn primary">CERRAR STATUS</button></div></form></>})()
+     </>:modal.newMinuta?<><div className="section-title"><span>MINUTA DE REUNIÓN</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div><MinutaForm/></>:(modal.newInitiative||modal.editInitiative)?<><div className="section-title"><span>{modal.editInitiative?"EDITAR INICIATIVA":"NUEVA INICIATIVA COMERCIAL"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div><InitiativeForm i={modal.editInitiative?(db.iniciativas||[]).find(x=>x.id===modal.editInitiative)||{}:{empresaId:modal.company||"",contactoId:modal.contact||""}}/></>:modal.statusInitiative?(()=>{const i=(db.iniciativas||[]).find(x=>x.id===modal.statusInitiative);if(!i)return <div className="empty">INICIATIVA NO ENCONTRADA.</div>;const last=(i.statuses||[]).slice(-1)[0];const since=last?.fecha||i.inicio||"0000-00-00";const states=["Pendiente","Investigar","Contactar","Contactado","Reunión","Oportunidad","Descartada"];const accountRows=(i.cuentas||[]).map(c=>{const e=emp(c.empresaId);const acts=(db.actividades||[]).filter(a=>a.empresaId===c.empresaId&&a.iniciativaId===i.id&&a.fecha>since).sort((a,b)=>b.fecha.localeCompare(a.fecha));const opps=(db.oportunidades||[]).filter(o=>o.empresaId===c.empresaId&&o.iniciativaId===i.id&&!['Ganada','Perdida'].includes(o.etapa));return {...c,e,acts,opps}});const moved=accountRows.filter(x=>x.acts.length||x.opps.length).length;return <><div className="section-title"><span>STATUS · {i.nombre}</span><button className="btn dim" onClick={()=>setModal({viewInitiative:i.id})}>VOLVER</button></div><div className="meta">PARTNER: {emp(i.empresaId)?.nombre||"—"} · DESDE ÚLTIMO STATUS: {since}<br/>CUENTAS: {accountRows.length} · CON MOVIMIENTO: {moved} · SIN MOVIMIENTO: {accountRows.length-moved}</div><form onSubmit={guard(e=>saveInitiativeStatus(e,i.id))}>{accountRows.map(x=><div className="card" key={x.empresaId}><div className="row"><div><div className="title">{x.e?.nombre||"EMPRESA"}</div><div className="meta">{x.acts.length?`ÚLTIMA: ${x.acts[0].fecha} · ${x.acts[0].tipo}`:"SIN ACTIVIDAD DESDE EL ÚLTIMO STATUS"}{x.opps.length?` · ${x.opps.length} OPORTUNIDAD(ES) ABIERTA(S)`:""}</div></div><select name={`estado_${x.empresaId}`} defaultValue={x.estado||"Pendiente"} style={{width:"auto",minWidth:"130px"}}>{states.map(z=><option key={z}>{z}</option>)}</select></div><NoteText text={x.acts[0]?.nota} small lines={3}/><div className="actions"><button type="button" className="btn dim" onClick={()=>setModal({viewCompany:x.empresaId})}>VER CUENTA →</button>{x.opps[0]&&<button type="button" className="btn dim" onClick={()=>setModal({viewOpp:x.opps[0].id})}>VER OPORTUNIDAD →</button>}</div></div>)}<hr/><div className="section-title"><span>DEFINICIONES DEL STATUS</span><span>HASTA 5</span></div>{[0,1,2,3,4].map(n=><div className="card" data-acuerdo key={n}><select name="acCuenta"><option value="">GENERAL</option>{accountRows.map(x=><option key={x.empresaId} value={x.empresaId}>{x.e?.nombre}</option>)}</select><input name="acTexto" placeholder="Definición / próximo paso"/><div className="grid2"><input name="acResponsable" placeholder="Responsable"/><input name="acFecha" type="date"/></div></div>)}<label>RESUMEN / NOTAS DEL STATUS</label><textarea name="resumen"/><label>PRÓXIMO STATUS</label><input name="proximoStatus" type="date"/><div className="actions"><button className="btn primary">CERRAR STATUS</button></div></form></>})()
 :modal.viewInitiative?(()=>{
  const i=(db.iniciativas||[]).find(x=>x.id===modal.viewInitiative);
  if(!i)return <div className="empty">INICIATIVA NO ENCONTRADA.</div>;
@@ -2343,7 +2424,7 @@ function App(){
        <div className="actions"><button className="btn primary" type="submit">GUARDAR</button>{modal.editContact&&<button className="btn danger" type="button" onClick={()=>deleteContact(c.id)}>ELIMINAR</button>}<button className="btn dim" type="button" onClick={()=>setModal(false)}>CANCELAR</button></div>
       </form></>
     })():modal.viewContact?contactSheet(modal.viewContact):(modal.newOpp||modal.editOpp)?(()=>{
-      const o=modal.editOpp?db.oportunidades.find(x=>x.id===modal.editOpp):{};
+      const o=modal.editOpp?db.oportunidades.find(x=>x.id===modal.editOpp):{empresaId:modal.company||(modal.contact?db.contactos.find(c=>c.id===modal.contact)?.empresaId:"")||"",contactos:modal.contact?[modal.contact]:[]};
       const selected=o.contactos||[];
       return <><div className="section-title"><span>{modal.editOpp?"EDITAR OPORTUNIDAD":"NUEVA OPORTUNIDAD"}</span><button className="btn dim" onClick={()=>setModal(false)}>ESC</button></div>
        <form onSubmit={guard(saveOpportunity)}>
@@ -2418,7 +2499,7 @@ function App(){
        {(db.triggers||[]).filter(t=>t.oportunidadId===o.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(t=><div className="card" key={t.id}><div className="row"><div className="title">{t.titulo}</div><span className="tag">{t.relevancia}</span></div><div className="meta">{t.fecha} · {t.tipo} · {t.estado}{t.contactoId&&db.contactos.find(c=>c.id===t.contactoId)?` · ${db.contactos.find(c=>c.id===t.contactoId).nombre}`:""}</div><NoteText text={t.descripcion} empty="—" small/><div className="actions">{t.link&&<button className="btn dim" onClick={()=>window.open(t.link,"_blank","noopener,noreferrer")}>ABRIR FUENTE ↗</button>}{t.tipo==="Licitación"&&<button className="btn primary" onClick={()=>setModal({newTender:true,company:t.empresaId,trigger:t.id})}>REGISTRAR LICITACIÓN →</button>}<button className="btn dim" onClick={()=>setModal({editTrigger:t.id})}>EDITAR</button></div></div>)}
        {!(db.triggers||[]).some(t=>t.oportunidadId===o.id)&&<div className="empty">SIN TRIGGERS VINCULADOS.</div>}
        <hr/><div className="small">CONTEXTO</div><NoteText text={o.nota} empty="—"/>
-       <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
+       <div className="actions"><button className="btn dim" onClick={()=>moveStage(o.id,-1)}>◀ ETAPA</button><button className="btn" onClick={()=>setModal({opp:o.id})}>+ ACTIVIDAD</button><button className="btn primary" onClick={()=>setModal({newMinuta:true,opp:o.id,company:o.empresaId})}>+ MINUTA</button><button className="btn primary" onClick={()=>setModal({newNote:true,opp:o.id,company:o.empresaId})}>+ NOTA</button><button className="btn primary" onClick={()=>setModal({newTask:true,opp:o.id,company:o.empresaId})}>+ TAREA</button><button className="btn dim" onClick={()=>moveStage(o.id,1)}>ETAPA ▶</button><button className="btn primary" onClick={()=>setModal({editOpp:o.id})}>EDITAR</button></div>
        <hr/><div className="section-title"><span>TAREAS</span><span>{oppTasks.filter(t=>!t.completada).length} ABIERTAS</span></div>
        {taskList(oppTasks)}
        <hr/><div className="section-title"><span>NOTAS</span><span>{notes.length}</span></div>
@@ -2440,13 +2521,17 @@ function App(){
         <div className="ent-hero"><Avatar name={e.nombre} kind="empresa" size={56}/><div className="ent-body"><div className="title ent-hero-title">{e.nombre}</div>
        <div className="meta">{e.industria||"Sin industria"} · {e.estado} · Potencial {e.potencial}</div></div></div>
        <div className="actions">
-        <button className="btn primary" onClick={()=>setModal({newContact:true,company:e.id})}>+ CONTACTO</button>
-        <button className="btn primary" onClick={()=>setModal({newTrigger:true,company:e.id})}>+ TRIGGER</button>
-        <button className="btn primary" onClick={()=>setModal({newTender:true,company:e.id})}>+ LICITACIÓN</button>
-        <button className="btn primary" onClick={()=>setModal({newInitiative:true,company:e.id})}>+ INICIATIVA</button>
-        <button className="btn primary" onClick={()=>setModal({newTask:true,company:e.id})}>+ TAREA</button>
-        <button className="btn primary" onClick={()=>setModal({newNote:true,company:e.id})}>+ NOTA</button>
-        <button className="btn" onClick={()=>setModal({company:e.id})}>+ ACTIVIDAD</button>
+        <button className="btn primary" onClick={()=>setModal({newMinuta:true,company:e.id})}>+ MINUTA</button>
+        <button className="btn primary" onClick={()=>setModal({newOpp:true,company:e.id})}>+ OPORTUNIDAD</button>
+        <button className="btn primary" onClick={()=>setModal({company:e.id})}>+ ACTIVIDAD</button>
+        <button className="btn" onClick={()=>setModal({newContact:true,company:e.id})}>+ CONTACTO</button>
+        <button className="btn" onClick={()=>setModal({newTask:true,company:e.id})}>+ TAREA</button>
+        <button className="btn" onClick={()=>setModal({newNote:true,company:e.id})}>+ NOTA</button>
+       </div>
+       <div className="actions actions-secondary">
+        <button className="btn dim" onClick={()=>setModal({newTrigger:true,company:e.id})}>+ TRIGGER</button>
+        <button className="btn dim" onClick={()=>setModal({newTender:true,company:e.id})}>+ LICITACIÓN</button>
+        <button className="btn dim" onClick={()=>setModal({newInitiative:true,company:e.id})}>+ INICIATIVA</button>
         <button className="btn dim" onClick={()=>setModal({editCompany:e.id})}>EDITAR</button>
        </div>
        <hr/><div className="section-title"><span>CONTACTOS</span><span>{cs.length}</span></div>
